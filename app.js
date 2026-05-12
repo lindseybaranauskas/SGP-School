@@ -1544,7 +1544,22 @@ function scenarioCard(name) {
     </div>
   `;
 }
+function currentStateScenarioCard() {
+  const cs = dashboardData.currentState;
 
+  return `
+    <div class="scenario-card current-state-card">
+      <h3>Current State</h3>
+      <div class="strategy">Baseline network</div>
+      <div class="score-grid">
+        <div class="score-item"><span>Total VPs</span><strong>${cs.totalLeaders}</strong></div>
+        <div class="score-item"><span>Facilities</span><strong>${cs.existingFacilities}</strong></div>
+        <div class="score-item"><span>Over Cap.</span><strong>${cs.leadersOverCapacity}</strong></div>
+        <div class="score-item"><span>Risk Areas</span><strong>${cs.currentRiskAreas}</strong></div>
+      </div>
+    </div>
+  `;
+}
 // ============================================================
 // Opportunities
 // ============================================================
@@ -1800,7 +1815,13 @@ function renderAllLeadersSummary() {
       { label: "Default", value: names.includes("Balanced Growth") ? "Balanced" : names[0] || "--" }
     ]);
 
-    setHtml("leaderScenarioComparison", names.map(name => scenarioCard(name)).join(""));
+    setHtml(
+  "leaderScenarioComparison",
+  [
+    currentStateScenarioCard(),
+    ...getAllScenarioNames().map(name => scenarioCard(name))
+  ].join("")
+);
     return;
   }
 
