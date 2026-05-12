@@ -13,6 +13,7 @@ const MODEL_DATA_PATHS = {
   newOpportunities: "data/new_opportunities.json",
   sensitivityResults: "data/sensitivity_results.json",
   networkNodesEdges: "data/network_nodes_edges.json",
+  networkImageManifest: "data/network_image_manifest.json",
   optimizedAssignments: "data/optimized_assignments.json",
   scenarioLeaderWorkloads: "data/scenario_leader_workloads.json",
   scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json",
@@ -107,6 +108,15 @@ function normalizeKey(value) {
     .toLowerCase()
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ");
+}
+
+function safeFilename(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/-+/g, "_");
 }
 
 function normalizeServiceLine(value) {
@@ -297,6 +307,7 @@ async function loadModelOutputs() {
     newOpportunities,
     sensitivityResults,
     networkNodesEdges,
+    networkImageManifest,
     optimizedAssignments,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
@@ -311,6 +322,7 @@ async function loadModelOutputs() {
     fetchModelJson(MODEL_DATA_PATHS.newOpportunities, []),
     fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
     fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
+    fetchModelJson(MODEL_DATA_PATHS.networkImageManifest, {}),
     fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
     fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, {}),
@@ -327,6 +339,7 @@ async function loadModelOutputs() {
     newOpportunities,
     sensitivityResults,
     networkNodesEdges,
+    networkImageManifest,
     optimizedAssignments,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
@@ -403,6 +416,9 @@ function getAllScenarioNames() {
   const fromNetwork = isPlainObject(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
     ? Object.keys(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
     : [];
+  const fromManifest = isPlainObject(dashboardData.rawModelOutputs.networkImageManifest)
+    ? Object.keys(dashboardData.rawModelOutputs.networkImageManifest)
+    : [];
   const fromScenariosObject = dashboardData.scenarios ? Object.keys(dashboardData.scenarios) : [];
 
   const names = [
@@ -412,6 +428,7 @@ function getAllScenarioNames() {
     ...fromOpportunityAssignments,
     ...fromDrilldown,
     ...fromNetwork,
+    ...fromManifest,
     ...fromScenariosObject
   ].filter(Boolean);
 
@@ -1446,66 +1463,30 @@ function renderSingleScenarioMode() {
     <div class="compare-card">
       <span>Current State</span>
       <div class="score-grid">
-        <div class="score-item">
-          <span>Total VPs</span>
-          <strong>${cs.totalLeaders}</strong>
-        </div>
-        <div class="score-item">
-          <span>Facilities</span>
-          <strong>${cs.existingFacilities}</strong>
-        </div>
-        <div class="score-item">
-          <span>Over Capacity</span>
-          <strong>${cs.leadersOverCapacity}</strong>
-        </div>
-        <div class="score-item">
-          <span>Risk Areas</span>
-          <strong>${cs.currentRiskAreas}</strong>
-        </div>
+        <div class="score-item"><span>Total VPs</span><strong>${cs.totalLeaders}</strong></div>
+        <div class="score-item"><span>Facilities</span><strong>${cs.existingFacilities}</strong></div>
+        <div class="score-item"><span>Over Capacity</span><strong>${cs.leadersOverCapacity}</strong></div>
+        <div class="score-item"><span>Risk Areas</span><strong>${cs.currentRiskAreas}</strong></div>
       </div>
     </div>
 
     <div class="compare-card">
       <span>${scenarioName}</span>
       <div class="score-grid">
-        <div class="score-item">
-          <span>New Opportunities</span>
-          <strong>${optimized.newOpportunities}</strong>
-        </div>
-        <div class="score-item">
-          <span>Reassignments</span>
-          <strong>${optimized.reassignments}</strong>
-        </div>
-        <div class="score-item">
-          <span>Over Capacity</span>
-          <strong>${optimized.leadersOverCapacity}</strong>
-        </div>
-        <div class="score-item">
-          <span>Objective Score</span>
-          <strong>${optimized.objectiveScore}</strong>
-        </div>
+        <div class="score-item"><span>New Opportunities</span><strong>${optimized.newOpportunities}</strong></div>
+        <div class="score-item"><span>Reassignments</span><strong>${optimized.reassignments}</strong></div>
+        <div class="score-item"><span>Over Capacity</span><strong>${optimized.leadersOverCapacity}</strong></div>
+        <div class="score-item"><span>Objective Score</span><strong>${optimized.objectiveScore}</strong></div>
       </div>
     </div>
 
     <div class="compare-card">
       <span>Net Change</span>
       <div class="score-grid">
-        <div class="score-item">
-          <span>Capacity Risk</span>
-          <strong>${cs.leadersOverCapacity} → ${optimized.leadersOverCapacity}</strong>
-        </div>
-        <div class="score-item">
-          <span>Violations</span>
-          <strong>${cs.currentRiskAreas} → ${optimized.constraintViolations}</strong>
-        </div>
-        <div class="score-item">
-          <span>Avg Util.</span>
-          <strong>${cs.averageUtilization} → ${optimized.averageUtilization}</strong>
-        </div>
-        <div class="score-item">
-          <span>Highest Util.</span>
-          <strong>${cs.highestUtilization} → ${optimized.highestUtilization}</strong>
-        </div>
+        <div class="score-item"><span>Capacity Risk</span><strong>${cs.leadersOverCapacity} → ${optimized.leadersOverCapacity}</strong></div>
+        <div class="score-item"><span>Violations</span><strong>${cs.currentRiskAreas} → ${optimized.constraintViolations}</strong></div>
+        <div class="score-item"><span>Avg Util.</span><strong>${cs.averageUtilization} → ${optimized.averageUtilization}</strong></div>
+        <div class="score-item"><span>Highest Util.</span><strong>${cs.highestUtilization} → ${optimized.highestUtilization}</strong></div>
       </div>
     </div>
   `);
@@ -1774,6 +1755,31 @@ function populateLeaderSelector() {
   ].join("");
 }
 
+function ensureLeaderSummaryComparisonContainer() {
+  const summaryMode = getEl("leaderSummaryMode");
+
+  let container = getEl("leaderScenarioComparisonSummary");
+
+  if (!container && summaryMode) {
+    container = document.createElement("div");
+    container.id = "leaderScenarioComparisonSummary";
+    container.className = "scenario-scorecard-grid leader-summary-comparison-grid";
+    summaryMode.appendChild(container);
+  }
+
+  return container || getEl("leaderScenarioComparison");
+}
+
+function setLeaderScenarioComparisonHtml(html) {
+  const summaryContainer = ensureLeaderSummaryComparisonContainer();
+  if (summaryContainer) summaryContainer.innerHTML = html;
+
+  const legacyContainer = getEl("leaderScenarioComparison");
+  if (legacyContainer && legacyContainer !== summaryContainer) {
+    legacyContainer.innerHTML = html;
+  }
+}
+
 function renderLeaderDrilldown() {
   const selectedLeader = drilldownLeaderSelect?.value || "__all";
 
@@ -1817,8 +1823,7 @@ function renderAllLeadersSummary() {
       { label: "Default", value: names.includes("Balanced Growth") ? "Balanced" : names[0] || "--" }
     ]);
 
-    setHtml(
-      "leaderScenarioComparison",
+    setLeaderScenarioComparisonHtml(
       [
         currentStateScenarioCard(),
         ...names.map(name => scenarioCard(name))
@@ -1849,8 +1854,7 @@ function renderAllLeadersSummary() {
     { label: "Largest Decrease", value: largestDecrease?.name || "--", note: largestDecrease ? `${largestDecrease.change}` : "" }
   ]);
 
-  setHtml(
-    "leaderScenarioComparison",
+  setLeaderScenarioComparisonHtml(
     [
       currentStateScenarioCard(),
       scenarioCard(getSingleScenarioName())
@@ -2052,6 +2056,75 @@ function buildNetworkData() {
   };
 }
 
+function ensureNetworkGraphPanel() {
+  const networkSingleMode = getEl("networkSingleMode");
+  if (!networkSingleMode) return null;
+
+  let panel = getEl("networkGraphPanel");
+
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "networkGraphPanel";
+    panel.className = "mini-panel full-width network-graph-panel";
+    panel.innerHTML = `
+      <div class="panel-title-row">
+        <div>
+          <h3>NetworkX Graph Output</h3>
+          <p id="networkGraphCaption">Scenario-generated graph from Python NetworkX.</p>
+        </div>
+        <a id="networkGraphDownload" class="small-button network-graph-download hidden" href="#" download>
+          Download image
+        </a>
+      </div>
+      <img id="networkGraphImage" class="network-graph-image hidden" alt="NetworkX scenario graph" />
+    `;
+
+    networkSingleMode.prepend(panel);
+  }
+
+  return panel;
+}
+
+function getNetworkImagePathForScenario(scenarioName) {
+  const manifest = dashboardData.rawModelOutputs.networkImageManifest || {};
+
+  if (manifest[scenarioName]) return manifest[scenarioName];
+
+  const matchedKey = Object.keys(manifest).find(key => normalizeKey(key) === normalizeKey(scenarioName));
+  if (matchedKey) return manifest[matchedKey];
+
+  return `assets/network_${safeFilename(scenarioName)}.png`;
+}
+
+function renderNetworkGraphImage() {
+  const panel = ensureNetworkGraphPanel();
+  if (!panel) return;
+
+  const scenarioName = getSingleScenarioName();
+  const imagePath = getNetworkImagePathForScenario(scenarioName);
+
+  const image = getEl("networkGraphImage");
+  const caption = getEl("networkGraphCaption");
+  const download = getEl("networkGraphDownload");
+
+  if (!image || !caption || !download) return;
+
+  image.src = imagePath;
+  image.classList.remove("hidden");
+
+  download.href = imagePath;
+  download.setAttribute("download", `${safeFilename(scenarioName)}_networkx_graph.png`);
+  download.classList.remove("hidden");
+
+  caption.textContent = `${scenarioName} NetworkX graph generated from the Python model output.`;
+
+  image.onerror = () => {
+    image.classList.add("hidden");
+    download.classList.add("hidden");
+    caption.textContent = `No NetworkX image was found for ${scenarioName}. Confirm the assets folder and data/network_image_manifest.json were committed.`;
+  };
+}
+
 function renderNetwork() {
   if (isCompareAllMode()) {
     setText(
@@ -2073,6 +2146,8 @@ function renderNetwork() {
 
   getEl("networkSingleMode")?.classList.remove("hidden");
   getEl("networkAllMode")?.classList.add("hidden");
+
+  renderNetworkGraphImage();
 
   const network = buildNetworkData();
 
