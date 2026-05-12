@@ -12,7 +12,9 @@ const MODEL_DATA_PATHS = {
   sensitivityResults: "data/sensitivity_results.json",
   networkNodesEdges: "data/network_nodes_edges.json",
   optimizedAssignments: "data/optimized_assignments.json",
-  progressReports: "data/progress_reports.json"
+  progressReports: "data/progress_reports.json",
+  scenarioLeaderWorkloads: "data/scenario_leader_workloads.json",
+  scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json"
 };
 
 const PREVIEW_LIMIT = 5;
@@ -208,6 +210,16 @@ function getStatus(workload, capacity) {
   return "Within Capacity";
 }
 
+function getStatusFromPct(percentValue) {
+  const pct = Number(percentValue);
+
+  if (!Number.isFinite(pct)) return "Within Capacity";
+  if (pct > 100) return "Over Capacity";
+  if (pct >= 95) return "Near Capacity";
+  if (pct <= 75) return "Available Capacity";
+  return "Within Capacity";
+}
+
 function getRiskLabel(overCapacityCount) {
   if (overCapacityCount >= 4) return "Elevated";
   if (overCapacityCount >= 2) return "Moderate";
@@ -252,12 +264,14 @@ async function loadModelOutputs() {
     sensitivityResults: await fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
     networkNodesEdges: await fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
     optimizedAssignments: await fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
-    progressReports: await fetchModelJson(MODEL_DATA_PATHS.progressReports, [])
+    progressReports: await fetchModelJson(MODEL_DATA_PATHS.progressReports, []),
+    scenarioLeaderWorkloads: await fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, []),
+    scenarioOpportunityAssignments: await fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, [])
   };
 }
 
 // ============================================================
-// Model-output adapter
+// Scenario helpers
 // ============================================================
 
 function getScenarioName(row) {
@@ -266,6 +280,26 @@ function getScenarioName(row) {
     ["scenario_name", "scenarioName", "scenario_label", "scenarioLabel", "name"],
     "Unnamed Scenario"
   );
+}
+
+function getRowScenarioName(row) {
+  return pickValue(
+    row,
+    ["scenario_name", "scenarioName", "Scenario", "scenario"],
+    ""
+  );
+}
+
+function filterRowsForScenario(rows, scenarioName) {
+  const arr = toArray(rows);
+
+  if (!arr.length) return [];
+
+  const hasScenarioName = arr.some(row => getRowScenarioName(row));
+
+  if (!hasScenarioName) return arr;
+
+  return arr.filter(row => getRowScenarioName(row) === scenarioName);
 }
 
 function getScenarioCandidateScore(row) {
@@ -300,6 +334,18 @@ function getScenarioImprovement(row) {
 
   return ((candidate - optimized) / candidate) * 100;
 }
+
+function getScenarioReassignmentCount(row) {
+  return pickNumber(
+    row,
+    ["reassignment_count", "reassignments", "Reassignments", "candidate_to_optimized_change_count"],
+    getScenarioViolations(row)
+  );
+}
+
+// ============================================================
+// Model-output adapter
+// ============================================================
 
 function buildLeaderContextFromAssignments(assignments) {
   const context = {};
@@ -393,6 +439,18 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
 
     const capacity = pickNumber(row, ["Capacity", "capacity"], DEFAULT_CAPACITY);
 
+    const baselineUtilPct = pickNumber(
+      row,
+      ["baseline_utilization_pct", "Baseline Utilization %"],
+      (baseline / capacity) * 100
+    );
+
+    const optimizedUtilPct = pickNumber(
+      row,
+      ["optimized_utilization_pct", "Optimized Utilization %"],
+      (optimized / capacity) * 100
+    );
+
     const region = pickValue(
       row,
       ["Region", "region", "Market", "Division"],
@@ -414,37 +472,96 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
       baseline,
       optimized,
       capacity,
+      baselineUtilPct,
+      optimizedUtilPct,
       region,
       serviceLines,
       serviceLine: serviceLines[0] || "--",
       facilityCount,
-      capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatus(baseline, capacity)),
-      optimizedStatus: getStatus(optimized, capacity)
+      capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatusFromPct(baselineUtilPct)),
+      optimizedStatus: getStatusFromPct(optimizedUtilPct)
     };
   });
+}
+
+function normalizeScenarioLeaderRow(row) {
+  const leaderName = pickValue(row, ["Leader", "VP ID", "leader_name", "VP Name", "name"], "Unknown Leader");
+
+  const baseline = pickNumber(
+    row,
+    ["baseline_workload", "base Workload", "Base Workload", "Baseline Workload", "Current Workload"],
+    0
+  );
+
+  const optimized = pickNumber(
+    row,
+    ["optimized_workload", "Optimized Workload", "Final Workload"],
+    baseline
+  );
+
+  const capacity = pickNumber(row, ["capacity", "Capacity"], DEFAULT_CAPACITY);
+
+  const baselineUtilPct = pickNumber(
+    row,
+    ["baseline_utilization_pct", "Baseline Utilization %"],
+    (baseline / capacity) * 100
+  );
+
+  const optimizedUtilPct = pickNumber(
+    row,
+    ["optimized_utilization_pct", "Optimized Utilization %"],
+    (optimized / capacity) * 100
+  );
+
+  const serviceLines = [
+    ...new Set(
+      toArray(pickValue(row, ["Service_Lines", "Service Lines", "Service Line", "service_lines"], []))
+        .map(normalizeServiceLine)
+        .filter(Boolean)
+    )
+  ];
+
+  return {
+    name: leaderName,
+    baseline,
+    optimized,
+    capacity,
+    baselineUtilPct,
+    optimizedUtilPct,
+    region: pickValue(row, ["Region", "region", "Market", "Division"], "--"),
+    serviceLines,
+    serviceLine: serviceLines[0] || "--",
+    facilityCount: pickNumber(row, ["base Facility Count", "Base Facility Count", "Current Facility Count", "facility_count", "Facility Count"], 0),
+    capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatusFromPct(baselineUtilPct)),
+    optimizedStatus: pickValue(row, ["optimized_capacity_status", "Optimized Capacity Status", "capacity_status"], getStatusFromPct(optimizedUtilPct)),
+    change: Number((optimized - baseline).toFixed(2))
+  };
 }
 
 function buildOpportunities(opportunityRows) {
   return opportunityRows.map(row => {
     const id = pickValue(row, ["Facility ID", "Opportunity ID", "id", "opportunity_id"], "Opportunity");
+
     const assignedVp = pickValue(
       row,
-      ["Assigned VP", "Recommended VP", "assigned_vp", "assigned_leader", "recommended_vp"],
+      ["Recommended VP", "Assigned VP", "assigned_vp", "assigned_leader", "recommended_vp"],
       "--"
     );
 
     const currentVp = pickValue(row, ["Current VP", "current_vp"], null);
     const serviceLine = normalizeServiceLine(pickValue(row, ["Service Line", "service_line"], ""));
-    const assignmentCost = pickNumber(row, ["Assignment Cost", "assignment_score", "score", "Score"], 0);
+    const assignmentCost = pickNumber(row, ["Assignment Score", "Assignment Cost", "assignment_score", "score", "Score"], 0);
     const region = pickValue(row, ["Region", "region"], "--");
 
-    const isReassignmentRaw = pickValue(row, ["Is Reassignment", "is_reassignment"], false);
+    const isReassignmentRaw = pickValue(row, ["Is Reassignment", "is_reassignment", "Review Required", "review"], false);
     const isReview =
       isReassignmentRaw === true ||
       String(isReassignmentRaw).toLowerCase() === "true" ||
-      pickValue(row, ["Review Required", "review"], false) === true;
+      String(isReassignmentRaw).toLowerCase() === "yes" ||
+      String(isReassignmentRaw) === "1";
 
     return {
+      scenarioName: getRowScenarioName(row),
       id: String(id).startsWith("Opportunity") ? String(id) : `Opportunity ${id}`,
       baseLeader: currentVp || assignedVp,
       altLeader: assignedVp,
@@ -455,7 +572,7 @@ function buildOpportunities(opportunityRows) {
       complexity: getComplexityLabel(pickValue(row, ["Facility Complexity Score", "complexity"], null)),
       workload: Number(assignmentCost).toFixed(2),
       score: Number(assignmentCost).toFixed(2),
-      impact: pickValue(row, ["Impact", "impact"], getStatus(assignmentCost, 1)),
+      impact: pickValue(row, ["Impact", "impact", "capacity_status"], getStatus(assignmentCost, 1)),
       review: isReview
     };
   });
@@ -486,7 +603,7 @@ function buildServiceLineScope(assignments, leaders) {
     });
 
     const overCapacity = relatedLeaders.filter(leader => {
-      return leader.baseline > leader.capacity;
+      return leader.baselineUtilPct > 100;
     }).length;
 
     const avgWorkload = relatedLeaders.length
@@ -494,14 +611,14 @@ function buildServiceLineScope(assignments, leaders) {
       : 0;
 
     const avgUtilization = relatedLeaders.length
-      ? relatedLeaders.reduce((sum, leader) => sum + (leader.baseline / leader.capacity), 0) / relatedLeaders.length
+      ? relatedLeaders.reduce((sum, leader) => sum + Number(leader.baselineUtilPct || 0), 0) / relatedLeaders.length
       : 0;
 
     return {
       serviceLine,
       facilities: rows.length,
       activeVPs: activeVpSet.size || relatedLeaders.length,
-      avgUtilization: formatPercent(avgUtilization),
+      avgUtilization: `${Math.round(avgUtilization)}%`,
       avgWorkload: Number(avgWorkload.toFixed(2)),
       leadersOverCapacity: overCapacity,
       networkShare: `${Math.round((rows.length / totalFacilities) * 100)}%`,
@@ -519,22 +636,22 @@ function buildRegionalScope(leaders) {
   }, {});
 
   return Object.entries(grouped).map(([region, rows]) => {
-    const overCapacity = rows.filter(row => row.baseline > row.capacity).length;
+    const overCapacity = rows.filter(row => Number(row.baselineUtilPct || 0) > 100).length;
 
     const avgUtilization = rows.length
-      ? rows.reduce((sum, row) => sum + (row.baseline / row.capacity), 0) / rows.length
+      ? rows.reduce((sum, row) => sum + Number(row.baselineUtilPct || 0), 0) / rows.length
       : 0;
 
     const highestUtilization = rows.length
-      ? Math.max(...rows.map(row => row.baseline / row.capacity))
+      ? Math.max(...rows.map(row => Number(row.baselineUtilPct || 0)))
       : 0;
 
     return {
       region,
       facilities: rows.reduce((sum, row) => sum + Number(row.facilityCount || 0), 0),
       activeVPs: rows.length,
-      avgUtilization: formatPercent(avgUtilization),
-      highestUtilization: formatPercent(highestUtilization),
+      avgUtilization: `${Math.round(avgUtilization)}%`,
+      highestUtilization: `${Math.round(highestUtilization)}%`,
       leadersOverCapacity: overCapacity,
       risk: getRiskLabel(overCapacity)
     };
@@ -603,16 +720,6 @@ function buildLeaderDetails(leaderDrilldown, opportunities) {
 function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunities) {
   const scenarios = {};
 
-  const avgOptimizedUtilization = leaders.length
-    ? leaders.reduce((sum, leader) => sum + (leader.optimized / leader.capacity), 0) / leaders.length
-    : 0;
-
-  const highestOptimizedUtilization = leaders.length
-    ? Math.max(...leaders.map(leader => leader.optimized / leader.capacity))
-    : 0;
-
-  const optimizedOverCapacity = leaders.filter(leader => leader.optimized > leader.capacity).length;
-
   scenarioRows.forEach(row => {
     const name = getScenarioName(row);
     const candidateScore = getScenarioCandidateScore(row);
@@ -636,6 +743,23 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
       "Minimize Disruption": "Reduce implementation change"
     };
 
+    const scenarioLeaderRows = filterRowsForScenario(
+      dashboardData?.scenarioLeaderWorkloads || [],
+      name
+    ).map(normalizeScenarioLeaderRow);
+
+    const leaderRowsForMetrics = scenarioLeaderRows.length ? scenarioLeaderRows : leaders;
+
+    const avgOptimizedUtilization = leaderRowsForMetrics.length
+      ? leaderRowsForMetrics.reduce((sum, leader) => sum + Number(leader.optimizedUtilPct || 0), 0) / leaderRowsForMetrics.length
+      : 0;
+
+    const highestOptimizedUtilization = leaderRowsForMetrics.length
+      ? Math.max(...leaderRowsForMetrics.map(leader => Number(leader.optimizedUtilPct || 0)))
+      : 0;
+
+    const optimizedOverCapacity = leaderRowsForMetrics.filter(leader => Number(leader.optimizedUtilPct || 0) > 100).length;
+
     scenarios[name] = {
       strategy: strategyMap[name] || "Model-generated scenario",
       priority: priorityMap[name] || "Evaluate model-generated assignment tradeoffs",
@@ -646,26 +770,21 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
       recommendationDetail:
         "This scenario is generated from the Python model output and compared against the current-state baseline.",
       optimizedMetrics: {
-        totalLeaders: summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaders.length,
+        totalLeaders: summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaderRowsForMetrics.length,
         newOpportunities:
           summaryMetrics.total_new_opportunities ??
           summaryMetrics.new_opportunity_count ??
           opportunities.length,
-        reassignments:
-          summaryMetrics.reassignment_count ??
-          summaryMetrics.candidate_to_optimized_change_count ??
-          violations,
+        reassignments: getScenarioReassignmentCount(row),
         leadersOverCapacity:
           summaryMetrics.optimized_over_capacity_count ??
           optimizedOverCapacity,
-        averageUtilization: formatPercent(avgOptimizedUtilization),
-        highestUtilization: formatPercent(highestOptimizedUtilization),
+        averageUtilization: `${Math.round(avgOptimizedUtilization)}%`,
+        highestUtilization: `${Math.round(highestOptimizedUtilization)}%`,
         workloadImprovement: `${improvement.toFixed(1)}%`,
         objectiveScore: optimizedScore.toFixed(2),
         constraintViolations: violations
       },
-      leaderMultiplier: 1,
-      changeBias: 0,
       baselineNarrative: [
         "The current-state baseline reflects existing VP assignments before new opportunity optimization.",
         "Capacity, service-line alignment, and assignment concentration are evaluated before growth is absorbed.",
@@ -699,8 +818,8 @@ function buildDecisionLog(progressReports) {
       },
       {
         date: "Current",
-        decision: "Removed embedded mock data",
-        reason: "Dashboard values now come from the model output files in the data folder.",
+        decision: "Scenario detail files added",
+        reason: "Scenario dropdowns now read scenario-specific leader and opportunity export files when available.",
         status: "Complete"
       }
     ];
@@ -721,10 +840,14 @@ function buildDashboardDataFromModel(modelOutputs) {
   const opportunitiesRaw = toArray(modelOutputs.newOpportunities);
   const sensitivityRows = toArray(modelOutputs.sensitivityResults);
   const optimizedAssignments = toArray(modelOutputs.optimizedAssignments);
+  const scenarioLeaderWorkloadsRaw = toArray(modelOutputs.scenarioLeaderWorkloads);
+  const scenarioOpportunityAssignmentsRaw = toArray(modelOutputs.scenarioOpportunityAssignments);
 
   const leaders = buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments);
   const opportunities = buildOpportunities(opportunitiesRaw);
-  const scenarios = buildScenarioObject(sensitivityRows, summaryMetrics, leaders, opportunities);
+  const scenarioOpportunityAssignments = buildOpportunities(scenarioOpportunityAssignmentsRaw);
+
+  const baseOverCapacity = leaders.filter(leader => Number(leader.baselineUtilPct || 0) > 100).length;
 
   const totalLeaders = summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaders.length;
 
@@ -735,25 +858,23 @@ function buildDashboardDataFromModel(modelOutputs) {
       return String(pickValue(row, ["Record Type", "record_type"], "")).toLowerCase() === "current";
     }).length;
 
-  const leadersOverCapacity =
-    summaryMetrics.base_over_capacity_count ??
-    leaders.filter(leader => leader.baseline > leader.capacity).length;
-
   const averageUtilization = leaders.length
-    ? leaders.reduce((sum, leader) => sum + (leader.baseline / leader.capacity), 0) / leaders.length
+    ? leaders.reduce((sum, leader) => sum + Number(leader.baselineUtilPct || 0), 0) / leaders.length
     : 0;
 
   const highestUtilization = leaders.length
-    ? Math.max(...leaders.map(leader => leader.baseline / leader.capacity))
+    ? Math.max(...leaders.map(leader => Number(leader.baselineUtilPct || 0)))
     : 0;
 
   const currentState = {
     totalLeaders,
     existingFacilities,
-    leadersOverCapacity,
-    averageUtilization: formatPercent(averageUtilization),
-    highestUtilization: formatPercent(highestUtilization),
-    currentRiskAreas: summaryMetrics.base_capacity_violations ?? leadersOverCapacity,
+    leadersOverCapacity:
+      summaryMetrics.base_over_capacity_count ??
+      baseOverCapacity,
+    averageUtilization: `${Math.round(averageUtilization)}%`,
+    highestUtilization: `${Math.round(highestUtilization)}%`,
+    currentRiskAreas: summaryMetrics.base_capacity_violations ?? baseOverCapacity,
     serviceLineScope: buildServiceLineScope(optimizedAssignments, leaders),
     regionalScope: buildRegionalScope(leaders),
     observations: [
@@ -776,14 +897,22 @@ function buildDashboardDataFromModel(modelOutputs) {
     ]
   };
 
-  return {
+  const baseData = {
     currentState,
-    scenarios,
     leaders,
     opportunities,
+    scenarioLeaderWorkloads: scenarioLeaderWorkloadsRaw,
+    scenarioOpportunityAssignments,
     leaderDetails: buildLeaderDetails(leaderDrilldown, opportunities),
     decisionLog: buildDecisionLog(modelOutputs.progressReports),
     rawModelOutputs: modelOutputs
+  };
+
+  dashboardData = baseData;
+
+  return {
+    ...baseData,
+    scenarios: buildScenarioObject(sensitivityRows, summaryMetrics, leaders, opportunities)
   };
 }
 
@@ -800,7 +929,13 @@ function isCompareAllMode() {
 }
 
 function getSingleScenarioName() {
-  return isCompareAllMode() ? "Balanced Growth" : getSelectedScenarioName();
+  if (isCompareAllMode()) {
+    return getAllScenarioNames().includes("Balanced Growth")
+      ? "Balanced Growth"
+      : getAllScenarioNames()[0];
+  }
+
+  return getSelectedScenarioName();
 }
 
 function getSelectedScenario() {
@@ -833,19 +968,47 @@ function renderPills(containerId, rows) {
 
 function renderCompactWorkload(containerId, rows, mode = "current") {
   setHtml(containerId, rows.map(row => {
-    const value = mode === "current" ? row.baseline : row.optimized;
-    const utilization = (Number(value || 0) / Number(row.capacity || DEFAULT_CAPACITY)) * 100;
-    const fillClass = utilization > 100 ? "red" : utilization >= 95 ? "yellow" : "green";
-    const status = getStatus(value, row.capacity);
+    const pct = mode === "current"
+      ? Number(row.baselineUtilPct || 0)
+      : Number(row.optimizedUtilPct || 0);
+
+    const fillClass = pct > 100 ? "red" : pct >= 95 ? "yellow" : "green";
+    const status = getStatusFromPct(pct);
 
     return `
       <div class="compact-row">
         <strong>${row.name}</strong>
         <div class="bar-track">
-          <div class="bar-fill ${fillClass}" style="width:${Math.min(utilization, 120)}%"></div>
+          <div class="bar-fill ${fillClass}" style="width:${Math.min(pct, 120)}%"></div>
         </div>
-        <span>${Math.round(utilization)}%</span>
+        <span>${Math.round(pct)}%</span>
         <span class="badge ${getBadgeClass(status)}">${status}</span>
+      </div>
+    `;
+  }).join(""));
+}
+
+function renderDualWorkload(containerId, rows) {
+  setHtml(containerId, rows.map(row => {
+    const baselinePct = Number(row.baselineUtilPct || 0);
+    const optimizedPct = Number(row.optimizedUtilPct || 0);
+
+    const baselineClass = baselinePct > 100 ? "red" : baselinePct >= 95 ? "yellow" : "green";
+    const optimizedClass = optimizedPct > 100 ? "red" : optimizedPct >= 95 ? "yellow" : "green";
+
+    return `
+      <div class="compact-row">
+        <strong>${row.name}</strong>
+        <div>
+          <div class="bar-track" title="Baseline">
+            <div class="bar-fill ${baselineClass}" style="width:${Math.min(baselinePct, 120)}%"></div>
+          </div>
+          <div class="bar-track" title="Optimized" style="margin-top:4px;">
+            <div class="bar-fill ${optimizedClass}" style="width:${Math.min(optimizedPct, 120)}%"></div>
+          </div>
+        </div>
+        <span>${Math.round(baselinePct)}% → ${Math.round(optimizedPct)}%</span>
+        <span class="badge ${getBadgeClass(row.optimizedStatus)}">${row.optimizedStatus}</span>
       </div>
     `;
   }).join(""));
@@ -901,14 +1064,14 @@ function renderCurrentState() {
   renderKpis("currentStateKpis", [
     { label: "Total VP Network", value: cs.totalLeaders },
     { label: "Existing Facilities", value: cs.existingFacilities },
-    { label: "Over Capacity", value: cs.leadersOverCapacity },
+    { label: "VPs Over Capacity", value: cs.leadersOverCapacity },
     { label: "Avg Utilization", value: cs.averageUtilization },
     { label: "Highest Utilization", value: cs.highestUtilization },
     { label: "Risk Areas", value: cs.currentRiskAreas }
   ]);
 
   const priorityRows = [...dashboardData.leaders]
-    .sort((a, b) => (b.baseline / b.capacity) - (a.baseline / a.capacity))
+    .sort((a, b) => Number(b.baselineUtilPct || 0) - Number(a.baselineUtilPct || 0))
     .slice(0, 8);
 
   renderCompactWorkload("currentWorkloadList", priorityRows, "current");
@@ -924,7 +1087,7 @@ function renderCurrentState() {
         <div class="scope-stat"><span>Active VPs</span><strong>${item.activeVPs}</strong></div>
         <div class="scope-stat"><span>Avg Workload</span><strong>${item.avgWorkload}</strong></div>
         <div class="scope-stat"><span>Avg Util.</span><strong>${item.avgUtilization}</strong></div>
-        <div class="scope-stat"><span>Over Capacity</span><strong>${item.leadersOverCapacity}</strong></div>
+        <div class="scope-stat"><span>VPs Over Capacity</span><strong>${item.leadersOverCapacity}</strong></div>
         <div class="scope-stat"><span>Risk</span><strong><span class="badge ${getBadgeClass(item.risk)}">${item.risk}</span></strong></div>
       </div>
     </div>
@@ -1007,7 +1170,7 @@ function renderSingleScenarioMode() {
   getEl("allScenarioSummary")?.classList.add("hidden");
 
   const comparisons = [
-    { label: "Over Capacity", baseline: cs.leadersOverCapacity, optimized: optimized.leadersOverCapacity },
+    { label: "VPs Over Capacity", baseline: cs.leadersOverCapacity, optimized: optimized.leadersOverCapacity },
     { label: "Avg Utilization", baseline: cs.averageUtilization, optimized: optimized.averageUtilization },
     { label: "Highest Utilization", baseline: cs.highestUtilization, optimized: optimized.highestUtilization },
     { label: "New Opportunities", baseline: 0, optimized: optimized.newOpportunities },
@@ -1064,8 +1227,17 @@ function scenarioCard(name) {
 // Opportunities
 // ============================================================
 
-function getScenarioOpportunityRows() {
-  return dashboardData.opportunities.map(row => ({
+function getScenarioOpportunityRows(scenarioName = getSingleScenarioName()) {
+  const scenarioRows = filterRowsForScenario(
+    dashboardData.scenarioOpportunityAssignments || [],
+    scenarioName
+  );
+
+  const sourceRows = scenarioRows.length
+    ? scenarioRows
+    : dashboardData.opportunities;
+
+  return sourceRows.map(row => ({
     ...row,
     leader: row.leader || row.altLeader || row.baseLeader
   }));
@@ -1157,10 +1329,19 @@ function calculateOptimizedWorkload(leader) {
   return Number(Number(leader.baseline || 0).toFixed(2));
 }
 
-function getScenarioLeaderRows() {
+function getScenarioLeaderRows(scenarioName = getSingleScenarioName()) {
+  const scenarioRows = filterRowsForScenario(
+    dashboardData.scenarioLeaderWorkloads || [],
+    scenarioName
+  );
+
+  if (scenarioRows.length) {
+    return scenarioRows.map(normalizeScenarioLeaderRow);
+  }
+
   return dashboardData.leaders.map(leader => {
     const optimized = calculateOptimizedWorkload(leader);
-    const optimizedStatus = getStatus(optimized, leader.capacity);
+    const optimizedStatus = getStatusFromPct(leader.optimizedUtilPct);
     const change = Number((optimized - leader.baseline).toFixed(2));
 
     return {
@@ -1204,7 +1385,7 @@ function renderWorkloadSection() {
   } else if (scenarioWorkloadView?.value && scenarioWorkloadView.value !== "all") {
     rows = rows.filter(row => row.optimizedStatus === scenarioWorkloadView.value);
   } else {
-    rows = rows.sort((a, b) => (b.optimized / b.capacity) - (a.optimized / a.capacity)).slice(0, 10);
+    rows = rows.sort((a, b) => Number(b.optimizedUtilPct || 0) - Number(a.optimizedUtilPct || 0)).slice(0, 10);
   }
 
   setText(
@@ -1212,7 +1393,7 @@ function renderWorkloadSection() {
     `${getSingleScenarioName()} · ${scenarioWorkloadView?.options?.[scenarioWorkloadView.selectedIndex]?.text || "All"}`
   );
 
-  renderCompactWorkload("workloadList", rows, "optimized");
+  renderDualWorkload("workloadList", rows);
 }
 
 function renderSensitivitySection() {
@@ -1294,7 +1475,7 @@ function renderAllLeadersSummary() {
   const nearCapacity = rows.filter(row => row.optimizedStatus === "Near Capacity").length;
 
   const avgUtilization = average(
-    rows.map(row => ({ utilization: (row.optimized / row.capacity) * 100 })),
+    rows.map(row => ({ utilization: Number(row.optimizedUtilPct || 0) })),
     "utilization"
   );
 
@@ -1321,7 +1502,7 @@ function renderSingleLeader(leaderName) {
 
   if (!leader) return;
 
-  const utilization = `${Math.round((leader.optimized / leader.capacity) * 100)}%`;
+  const utilization = `${Math.round(Number(leader.optimizedUtilPct || 0))}%`;
 
   renderKpis("leaderKpis", [
     { label: "Baseline Workload", value: formatNumber(leader.baseline, 2) },
@@ -1340,22 +1521,26 @@ function renderSingleLeader(leaderName) {
 
 function renderLeaderBars(leader) {
   const rows = [
-    { label: "Baseline", value: leader.baseline },
-    { label: "Optimized", value: leader.optimized },
-    { label: "Capacity", value: leader.capacity }
+    { label: "Baseline", value: Number(leader.baselineUtilPct || 0), display: `${Math.round(Number(leader.baselineUtilPct || 0))}%` },
+    { label: "Optimized", value: Number(leader.optimizedUtilPct || 0), display: `${Math.round(Number(leader.optimizedUtilPct || 0))}%` },
+    { label: "Capacity", value: 100, display: "100%" }
   ];
 
-  const max = Math.max(...rows.map(row => Number(row.value || 0)), 1);
+  const max = Math.max(...rows.map(row => Number(row.value || 0)), 120);
 
-  setHtml("leaderWorkloadComparison", rows.map(row => `
-    <div class="compare-bar-row">
-      <span>${row.label}</span>
-      <div class="bar-track">
-        <div class="bar-fill ${row.label === "Capacity" ? "yellow" : "green"}" style="width:${(row.value / max) * 100}%"></div>
+  setHtml("leaderWorkloadComparison", rows.map(row => {
+    const fillClass = row.value > 100 ? "red" : row.value >= 95 ? "yellow" : "green";
+
+    return `
+      <div class="compare-bar-row">
+        <span>${row.label}</span>
+        <div class="bar-track">
+          <div class="bar-fill ${row.label === "Capacity" ? "yellow" : fillClass}" style="width:${(row.value / max) * 100}%"></div>
+        </div>
+        <strong>${row.display}</strong>
       </div>
-      <strong>${formatNumber(row.value, 2)}</strong>
-    </div>
-  `).join(""));
+    `;
+  }).join(""));
 }
 
 function getLeaderDetailRows(leaderName) {
@@ -1624,8 +1809,8 @@ async function initializeDashboard() {
 
     if (scenarioSelect) {
       scenarioSelect.innerHTML = [
-        `<option value="__all">Compare All Scenarios</option>`,
-        ...getAllScenarioNames().map(name => `<option value="${name}">${name}</option>`)
+        ...getAllScenarioNames().map(name => `<option value="${name}">${name}</option>`),
+        `<option value="__all">Compare All Scenarios</option>`
       ].join("");
 
       scenarioSelect.value = getAllScenarioNames().includes("Balanced Growth")
