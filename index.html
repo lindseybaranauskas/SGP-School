@@ -17,14 +17,13 @@
       </p>
     </header>
 
-    <nav class="tabs" aria-label="Dashboard tabs">
-      <button class="tab-button active" data-tab="home">Home</button>
-      <button class="tab-button" data-tab="currentState">Current State</button>
-      <button class="tab-button" data-tab="scenarios">Scenarios</button>
-      <button class="tab-button" data-tab="leaderDrilldown">Leader Drill-down</button>
-      <button class="tab-button" data-tab="network">Network</button>
-      <button class="tab-button" data-tab="progressReports">Progress Reports</button>
-    </nav>
+  <nav class="tabs" aria-label="Dashboard tabs">
+  <button class="tab-button active" data-tab="home">Home</button>
+  <button class="tab-button" data-tab="currentState">Current State</button>
+  <button class="tab-button" data-tab="scenarios">Scenarios</button>
+  <button class="tab-button" data-tab="leaderDrilldown">Leader Drill-down</button>
+  <button class="tab-button" data-tab="network">Network</button>
+</nav>
 
     <section id="home" class="tab-panel active">
       <section class="hero-card">
@@ -60,31 +59,26 @@
         </div>
 
         <div class="nav-card-grid">
-          <button class="nav-card" data-go-tab="currentState">
-            <h3>Current State</h3>
-            <p>Review baseline VP network size, workload pressure, EVS/CNS scope, regional scope, and risk areas.</p>
-          </button>
+  <button class="nav-card" data-go-tab="currentState">
+    <h3>Current State</h3>
+    <p>Review baseline VP network size, workload pressure, EVS/CNS scope, regional scope, and risk areas.</p>
+  </button>
 
-          <button class="nav-card" data-go-tab="scenarios">
-            <h3>Scenarios</h3>
-            <p>Compare optimized assignment strategies against the current state and review opportunity absorption.</p>
-          </button>
+  <button class="nav-card" data-go-tab="scenarios">
+    <h3>Scenarios</h3>
+    <p>Compare optimized assignment strategies against the current state and review opportunity absorption.</p>
+  </button>
 
-          <button class="nav-card" data-go-tab="leaderDrilldown">
-            <h3>Leader Drill-down</h3>
-            <p>Inspect all-leader summaries or VP-specific workload, portfolio mix, and scenario impact.</p>
-          </button>
+  <button class="nav-card" data-go-tab="leaderDrilldown">
+    <h3>Leader Drill-down</h3>
+    <p>Inspect all-leader summaries or VP-specific workload, portfolio mix, and scenario impact.</p>
+  </button>
 
-          <button class="nav-card" data-go-tab="network">
-            <h3>Network</h3>
-            <p>Explore scenario-driven relationships between VPs, facilities, opportunities, EVS/CNS, and review flags.</p>
-          </button>
-
-          <button class="nav-card" data-go-tab="progressReports">
-            <h3>Progress Reports</h3>
-            <p>Track documentation, decisions, assumptions, implementation notes, and next steps.</p>
-          </button>
-        </div>
+  <button class="nav-card" data-go-tab="network">
+    <h3>Network</h3>
+    <p>Explore scenario-driven relationships between VPs, facilities, opportunities, EVS/CNS, and review flags.</p>
+  </button>
+</div>
       </section>
     </section>
 
@@ -242,21 +236,16 @@
         <div class="metric-grid six-wide centered-metrics" id="opportunityKpis"></div>
 
         <div class="opportunity-insight-grid">
-          <div class="mini-panel">
-            <h3>Service-Line Mix</h3>
-            <div id="opportunityServiceMix" class="pill-row"></div>
-          </div>
+  <div class="mini-panel">
+    <h3>Opportunity Summary</h3>
+    <div id="opportunitySummary" class="pill-row"></div>
+  </div>
 
-          <div class="mini-panel">
-            <h3>Regional Mix</h3>
-            <div id="opportunityRegionMix" class="pill-row"></div>
-          </div>
-
-          <div class="mini-panel">
-            <h3>Complexity Mix</h3>
-            <div id="opportunityComplexityMix" class="pill-row"></div>
-          </div>
-        </div>
+  <div class="mini-panel">
+    <h3>Service-Line Mix</h3>
+    <div id="opportunityServiceMix" class="pill-row"></div>
+  </div>
+</div>
 
         <div class="table-controls">
           <input id="opportunitySearch" type="search" placeholder="Search opportunities, VPs, regions, EVS/CNS, or facility type..." />
@@ -458,91 +447,7 @@
       </section>
     </section>
 
-    <section id="progressReports" class="tab-panel">
-      <section class="section-block">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Progress Reports</p>
-            <h2>Project documentation and update log</h2>
-          </div>
-          <p>
-            Running documentation for project decisions, assumptions, model updates, UI changes, and next steps.
-          </p>
-        </div>
-
-        <div class="progress-grid">
-          <div class="mini-panel">
-            <h3>Latest Update</h3>
-            <p>
-              The portal has been redesigned into a cleaner executive planning experience with compact KPIs,
-              scenario comparison modes, EVS/CNS terminology, and scenario-driven drill-down behavior.
-            </p>
-          </div>
-
-          <div class="mini-panel">
-            <h3>Completed Work</h3>
-            <ul>
-              <li>Published the GitHub Pages prototype.</li>
-              <li>Moved from one dashboard page to a tabbed planning portal.</li>
-              <li>Corrected service-line terminology to EVS and CNS.</li>
-              <li>Converted VP names to VP IDs.</li>
-              <li>Added scenario, current-state, leader, network, and progress-report views.</li>
-            </ul>
-          </div>
-
-          <div class="mini-panel">
-            <h3>Current Focus</h3>
-            <ul>
-              <li>Prepare model exports from Colab.</li>
-              <li>Replace mock values with Python-generated statistics.</li>
-              <li>Connect scenario outputs to leader and network views.</li>
-              <li>Improve executive interpretation and progress reporting.</li>
-            </ul>
-          </div>
-
-          <div class="mini-panel">
-            <h3>Next Steps</h3>
-            <ul>
-              <li>Export current-state summary metrics.</li>
-              <li>Export all opportunity assignments by scenario.</li>
-              <li>Export leader workload summaries.</li>
-              <li>Export NetworkX nodes and edges.</li>
-            </ul>
-          </div>
-
-          <div class="mini-panel full-width">
-            <h3>Decision Log</h3>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Phase</th>
-                    <th>Decision</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="decisionLogTable"></tbody>
-              </table>
-            </div>
-
-            <div class="table-footer">
-              <span id="decisionTableStatus"></span>
-              <button class="small-button" id="toggleDecisionTable">Show all</button>
-            </div>
-          </div>
-
-          <div class="mini-panel full-width">
-            <h3>Model Assumptions</h3>
-            <ul>
-              <li>The dashboard is a decision-support tool, not an automatic final assignment approval system.</li>
-              <li>Capacity, distance, EVS/CNS fit, complexity, and reassignment disruption are treated as tradeoffs.</li>
-              <li>Assignments marked for review should be validated before implementation.</li>
-              <li>Network views are intended to show relationship structure and concentration patterns.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+   
     </section>
   </main>
 
