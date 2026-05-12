@@ -1,280 +1,26 @@
-const dashboardData = {
-  currentState: {
-    totalLeaders: 32,
-    existingFacilities: 128,
-    leadersOverCapacity: 7,
-    averageUtilization: "83%",
-    highestUtilization: "117%",
-    currentRiskAreas: 9,
-    serviceLineScope: [
-      {
-        serviceLine: "EVS",
-        facilities: 68,
-        activeVPs: 24,
-        avgUtilization: "86%",
-        avgWorkload: 15.9,
-        leadersOverCapacity: 4,
-        networkShare: "53%",
-        risk: "Elevated"
-      },
-      {
-        serviceLine: "CNS",
-        facilities: 60,
-        activeVPs: 21,
-        avgUtilization: "79%",
-        avgWorkload: 14.7,
-        leadersOverCapacity: 3,
-        networkShare: "47%",
-        risk: "Moderate"
-      }
-    ],
-    regionalScope: [
-      { region: "Southeast", facilities: 29, activeVPs: 8, avgUtilization: "84%", highestUtilization: "108%", leadersOverCapacity: 2, risk: "Elevated" },
-      { region: "Midwest", facilities: 24, activeVPs: 7, avgUtilization: "81%", highestUtilization: "111%", leadersOverCapacity: 1, risk: "Moderate" },
-      { region: "West", facilities: 31, activeVPs: 9, avgUtilization: "88%", highestUtilization: "117%", leadersOverCapacity: 2, risk: "Elevated" },
-      { region: "Northeast", facilities: 26, activeVPs: 7, avgUtilization: "79%", highestUtilization: "104%", leadersOverCapacity: 1, risk: "Moderate" },
-      { region: "Southwest", facilities: 18, activeVPs: 5, avgUtilization: "76%", highestUtilization: "99%", leadersOverCapacity: 1, risk: "Contained" }
-    ],
-    observations: [
-      { title: "Capacity pressure is uneven", body: "A smaller group of VPs carries elevated workload before new growth is absorbed." },
-      { title: "EVS has the larger footprint", body: "EVS represents a slightly larger share of current facility coverage and capacity pressure." },
-      { title: "Regional coverage varies", body: "The West and Southeast show higher utilization and more visible risk signals." },
-      { title: "Reoptimization matters", body: "The baseline structure should be reviewed before assigning future growth." }
-    ]
-  },
+// ============================================================
+// SGP VP Assignment Dashboard
+// Original UI + notebook-generated JSON data
+// No embedded mock data
+// ============================================================
 
-  scenarios: {
-    "Balanced Growth": {
-      strategy: "Balanced tradeoff",
-      priority: "Balance workload, geography, EVS/CNS fit, and disruption",
-      recommendationHeadline: "Balanced Growth is the recommended default scenario.",
-      recommendationDetail:
-        "This scenario provides the strongest overall tradeoff between workload balance, new opportunity absorption, geography, EVS/CNS alignment, and implementation disruption.",
-      optimizedMetrics: {
-        totalLeaders: 32,
-        newOpportunities: 26,
-        reassignments: 14,
-        leadersOverCapacity: 2,
-        averageUtilization: "80%",
-        highestUtilization: "103%",
-        workloadImprovement: "18%",
-        objectiveScore: "0.72",
-        constraintViolations: 2
-      },
-      leaderMultiplier: 0.96,
-      changeBias: 0,
-      baselineNarrative: [
-        "Current assignments show uneven capacity pressure across the VP network.",
-        "New opportunities are not yet integrated into the current leadership structure.",
-        "Several regions and service-line portfolios require review before growth is absorbed."
-      ],
-      optimizedNarrative: [
-        "All new opportunities are assigned into the leadership network.",
-        "Leaders over capacity are reduced while maintaining moderate implementation disruption.",
-        "The model balances capacity, geography, EVS/CNS alignment, and reassignment impact."
-      ]
-    },
-
-    "Capacity Protection": {
-      strategy: "Reduce overload risk",
-      priority: "Protect VP capacity first",
-      recommendationHeadline: "Capacity Protection is strongest when workload risk is the primary concern.",
-      recommendationDetail:
-        "This scenario prioritizes preventing VP overload, even if it creates more reassignment activity or slightly weaker geographic alignment.",
-      optimizedMetrics: {
-        totalLeaders: 32,
-        newOpportunities: 26,
-        reassignments: 19,
-        leadersOverCapacity: 1,
-        averageUtilization: "78%",
-        highestUtilization: "99%",
-        workloadImprovement: "24%",
-        objectiveScore: "0.69",
-        constraintViolations: 1
-      },
-      leaderMultiplier: 0.91,
-      changeBias: -0.6,
-      baselineNarrative: [
-        "Current assignments leave multiple VPs near or above capacity.",
-        "Growth increases the risk of uneven leadership portfolios.",
-        "Capacity risk is the dominant constraint in this view."
-      ],
-      optimizedNarrative: [
-        "Only one VP remains above capacity.",
-        "The workload curve is flatter across the leadership network.",
-        "More reassignment activity is required to achieve the capacity-protection outcome."
-      ]
-    },
-
-    "Geographic Efficiency": {
-      strategy: "Improve territory alignment",
-      priority: "Reduce geographic spread and travel burden",
-      recommendationHeadline: "Geographic Efficiency creates stronger territory alignment.",
-      recommendationDetail:
-        "This scenario prioritizes geographic fit and travel burden, but may create more leadership movement than the balanced scenario.",
-      optimizedMetrics: {
-        totalLeaders: 32,
-        newOpportunities: 26,
-        reassignments: 21,
-        leadersOverCapacity: 3,
-        averageUtilization: "82%",
-        highestUtilization: "106%",
-        workloadImprovement: "14%",
-        objectiveScore: "0.77",
-        constraintViolations: 3
-      },
-      leaderMultiplier: 0.99,
-      changeBias: 0.2,
-      baselineNarrative: [
-        "Some VPs carry broad geographic footprints.",
-        "New opportunities create additional territory complexity.",
-        "The baseline state does not explicitly optimize proximity or territory compactness."
-      ],
-      optimizedNarrative: [
-        "Assignments become more geographically concentrated.",
-        "Travel and territory spread are reduced for several VPs.",
-        "This scenario requires more movement to improve geographic fit."
-      ]
-    },
-
-    "Service Line Fit": {
-      strategy: "Improve EVS/CNS alignment",
-      priority: "Match opportunities to service-line familiarity",
-      recommendationHeadline: "Service Line Fit improves EVS and CNS alignment.",
-      recommendationDetail:
-        "This scenario prioritizes matching facilities and opportunities to VPs with stronger EVS or CNS portfolio alignment.",
-      optimizedMetrics: {
-        totalLeaders: 32,
-        newOpportunities: 26,
-        reassignments: 17,
-        leadersOverCapacity: 2,
-        averageUtilization: "81%",
-        highestUtilization: "104%",
-        workloadImprovement: "16%",
-        objectiveScore: "0.74",
-        constraintViolations: 2
-      },
-      leaderMultiplier: 0.94,
-      changeBias: -0.1,
-      baselineNarrative: [
-        "Current portfolios include mixed EVS and CNS exposure across VPs.",
-        "Growth creates new service-line assignment decisions.",
-        "The baseline state does not explicitly prioritize EVS/CNS alignment."
-      ],
-      optimizedNarrative: [
-        "More assignments align with VP EVS or CNS portfolio familiarity.",
-        "New opportunities are absorbed with stronger operational service-line fit.",
-        "Moderate reassignment activity is needed to improve portfolio alignment."
-      ]
-    },
-
-    "Minimize Disruption": {
-      strategy: "Preserve current relationships",
-      priority: "Reduce implementation change",
-      recommendationHeadline: "Minimize Disruption preserves the most existing relationships.",
-      recommendationDetail:
-        "This scenario keeps more current assignments intact, but it leaves more capacity pressure unresolved.",
-      optimizedMetrics: {
-        totalLeaders: 32,
-        newOpportunities: 26,
-        reassignments: 6,
-        leadersOverCapacity: 5,
-        averageUtilization: "85%",
-        highestUtilization: "112%",
-        workloadImprovement: "7%",
-        objectiveScore: "0.86",
-        constraintViolations: 5
-      },
-      leaderMultiplier: 1.02,
-      changeBias: 0.7,
-      baselineNarrative: [
-        "Existing VP-facility relationships are largely maintained.",
-        "Capacity pressure remains concentrated among several VPs.",
-        "Low disruption limits how much the network can rebalance."
-      ],
-      optimizedNarrative: [
-        "Only a small number of reassignments are recommended.",
-        "Most current relationships remain intact.",
-        "This option may be easiest to implement but leaves more workload risk in place."
-      ]
-    }
-  },
-
-  leaders: [
-    { name: "VP-001", baseline: 18.2, capacity: 18, region: "Southeast" },
-    { name: "VP-002", baseline: 21.1, capacity: 18, region: "Midwest" },
-    { name: "VP-003", baseline: 14.4, capacity: 18, region: "West" },
-    { name: "VP-004", baseline: 11.9, capacity: 18, region: "Northeast" },
-    { name: "VP-005", baseline: 19.8, capacity: 18, region: "Southwest" },
-    { name: "VP-006", baseline: 16.3, capacity: 18, region: "Central" },
-    { name: "VP-007", baseline: 20.6, capacity: 18, region: "West" },
-    { name: "VP-008", baseline: 13.7, capacity: 18, region: "Northeast" },
-    { name: "VP-009", baseline: 12.8, capacity: 18, region: "Midwest" },
-    { name: "VP-010", baseline: 17.6, capacity: 18, region: "Southeast" },
-    { name: "VP-011", baseline: 15.2, capacity: 18, region: "West" },
-    { name: "VP-012", baseline: 10.8, capacity: 18, region: "Southwest" },
-    { name: "VP-013", baseline: 18.9, capacity: 18, region: "Central" },
-    { name: "VP-014", baseline: 13.2, capacity: 18, region: "Northeast" }
-  ],
-
-  opportunities: [
-    { id: "Opportunity 001", baseLeader: "VP-004", altLeader: "VP-008", region: "Northeast", serviceLine: "EVS", facilityType: "Acute Care", complexity: "High", workload: 1.8, impact: "Within Capacity", review: true },
-    { id: "Opportunity 002", baseLeader: "VP-003", altLeader: "VP-011", region: "West", serviceLine: "CNS", facilityType: "Senior Living", complexity: "Medium", workload: 1.2, impact: "Within Capacity", review: false },
-    { id: "Opportunity 003", baseLeader: "VP-012", altLeader: "VP-005", region: "Southwest", serviceLine: "EVS", facilityType: "Rehabilitation", complexity: "High", workload: 1.7, impact: "Available Capacity", review: false },
-    { id: "Opportunity 004", baseLeader: "VP-009", altLeader: "VP-002", region: "Midwest", serviceLine: "CNS", facilityType: "Community Hospital", complexity: "Low", workload: 0.8, impact: "Available Capacity", review: false },
-    { id: "Opportunity 005", baseLeader: "VP-002", altLeader: "VP-009", region: "Midwest", serviceLine: "EVS", facilityType: "Acute Care", complexity: "High", workload: 1.9, impact: "Over Capacity", review: true },
-    { id: "Opportunity 006", baseLeader: "VP-011", altLeader: "VP-003", region: "West", serviceLine: "CNS", facilityType: "Senior Living", complexity: "Medium", workload: 1.1, impact: "Within Capacity", review: false },
-    { id: "Opportunity 007", baseLeader: "VP-008", altLeader: "VP-004", region: "Northeast", serviceLine: "EVS", facilityType: "Rehabilitation", complexity: "Medium", workload: 1.4, impact: "Within Capacity", review: false },
-    { id: "Opportunity 008", baseLeader: "VP-006", altLeader: "VP-013", region: "Central", serviceLine: "CNS", facilityType: "Acute Care", complexity: "High", workload: 1.6, impact: "Within Capacity", review: true },
-    { id: "Opportunity 009", baseLeader: "VP-010", altLeader: "VP-001", region: "Southeast", serviceLine: "EVS", facilityType: "Community Hospital", complexity: "Low", workload: 0.9, impact: "Within Capacity", review: false },
-    { id: "Opportunity 010", baseLeader: "VP-001", altLeader: "VP-010", region: "Southeast", serviceLine: "CNS", facilityType: "Acute Care", complexity: "High", workload: 1.5, impact: "Near Capacity", review: true },
-    { id: "Opportunity 011", baseLeader: "VP-015", altLeader: "VP-011", region: "West", serviceLine: "EVS", facilityType: "Senior Living", complexity: "Medium", workload: 1.3, impact: "Within Capacity", review: false },
-    { id: "Opportunity 012", baseLeader: "VP-016", altLeader: "VP-008", region: "Northeast", serviceLine: "CNS", facilityType: "Community Hospital", complexity: "Low", workload: 0.7, impact: "Available Capacity", review: false },
-    { id: "Opportunity 013", baseLeader: "VP-017", altLeader: "VP-010", region: "Southeast", serviceLine: "EVS", facilityType: "Acute Care", complexity: "High", workload: 2.0, impact: "Review Required", review: true },
-    { id: "Opportunity 014", baseLeader: "VP-018", altLeader: "VP-009", region: "Midwest", serviceLine: "CNS", facilityType: "Rehabilitation", complexity: "Medium", workload: 1.2, impact: "Within Capacity", review: false },
-    { id: "Opportunity 015", baseLeader: "VP-019", altLeader: "VP-011", region: "West", serviceLine: "EVS", facilityType: "Community Hospital", complexity: "Low", workload: 0.9, impact: "Available Capacity", review: false },
-    { id: "Opportunity 016", baseLeader: "VP-020", altLeader: "VP-012", region: "Southwest", serviceLine: "CNS", facilityType: "Senior Living", complexity: "High", workload: 1.8, impact: "Near Capacity", review: true },
-    { id: "Opportunity 017", baseLeader: "VP-021", altLeader: "VP-006", region: "Central", serviceLine: "EVS", facilityType: "Acute Care", complexity: "Medium", workload: 1.4, impact: "Within Capacity", review: false },
-    { id: "Opportunity 018", baseLeader: "VP-022", altLeader: "VP-014", region: "Northeast", serviceLine: "CNS", facilityType: "Community Hospital", complexity: "Medium", workload: 1.1, impact: "Within Capacity", review: false },
-    { id: "Opportunity 019", baseLeader: "VP-023", altLeader: "VP-010", region: "Southeast", serviceLine: "EVS", facilityType: "Rehabilitation", complexity: "High", workload: 1.7, impact: "Review Required", review: true },
-    { id: "Opportunity 020", baseLeader: "VP-024", altLeader: "VP-011", region: "West", serviceLine: "CNS", facilityType: "Acute Care", complexity: "High", workload: 1.6, impact: "Within Capacity", review: true },
-    { id: "Opportunity 021", baseLeader: "VP-025", altLeader: "VP-009", region: "Midwest", serviceLine: "EVS", facilityType: "Senior Living", complexity: "Low", workload: 0.8, impact: "Available Capacity", review: false },
-    { id: "Opportunity 022", baseLeader: "VP-026", altLeader: "VP-006", region: "Central", serviceLine: "CNS", facilityType: "Community Hospital", complexity: "Medium", workload: 1.3, impact: "Within Capacity", review: false },
-    { id: "Opportunity 023", baseLeader: "VP-027", altLeader: "VP-012", region: "Southwest", serviceLine: "EVS", facilityType: "Acute Care", complexity: "High", workload: 1.9, impact: "Review Required", review: true },
-    { id: "Opportunity 024", baseLeader: "VP-028", altLeader: "VP-014", region: "Northeast", serviceLine: "CNS", facilityType: "Senior Living", complexity: "Medium", workload: 1.0, impact: "Within Capacity", review: false },
-    { id: "Opportunity 025", baseLeader: "VP-029", altLeader: "VP-010", region: "Southeast", serviceLine: "EVS", facilityType: "Community Hospital", complexity: "Low", workload: 0.7, impact: "Available Capacity", review: false },
-    { id: "Opportunity 026", baseLeader: "VP-030", altLeader: "VP-011", region: "West", serviceLine: "CNS", facilityType: "Rehabilitation", complexity: "High", workload: 1.8, impact: "Near Capacity", review: true }
-  ],
-
-  leaderDetails: {
-    "VP-001": [
-      { name: "Facility 101", type: "Existing Facility", serviceLine: "EVS", facilityType: "Acute Care", region: "Southeast", workload: 2.4, status: "Retained" },
-      { name: "Facility 117", type: "Existing Facility", serviceLine: "CNS", facilityType: "Senior Living", region: "Southeast", workload: 2.1, status: "Retained" }
-    ],
-    "VP-002": [
-      { name: "Facility 204", type: "Existing Facility", serviceLine: "EVS", facilityType: "Acute Care", region: "Midwest", workload: 2.7, status: "Retained" },
-      { name: "Facility 219", type: "Existing Facility", serviceLine: "CNS", facilityType: "Community Hospital", region: "Midwest", workload: 1.8, status: "Reassigned Out" }
-    ],
-    "VP-003": [
-      { name: "Facility 310", type: "Existing Facility", serviceLine: "CNS", facilityType: "Senior Living", region: "West", workload: 2.0, status: "Retained" }
-    ],
-    "VP-004": [
-      { name: "Facility 405", type: "Existing Facility", serviceLine: "EVS", facilityType: "Acute Care", region: "Northeast", workload: 1.6, status: "Retained" }
-    ]
-  },
-
-  decisionLog: [
-    { date: "Phase 1", decision: "Use GitHub Pages for the first UI prototype.", reason: "Fastest way to publish a static executive-facing dashboard.", status: "Complete" },
-    { date: "Phase 1", decision: "Keep Colab as the model layer.", reason: "The optimization logic already exists there and can export structured outputs.", status: "Complete" },
-    { date: "Phase 2", decision: "Move from one long dashboard to a tabbed portal.", reason: "The project needs separate views for current state, model outputs, drill-down, network, and reporting.", status: "Complete" },
-    { date: "Phase 2", decision: "Correct service-line terminology to EVS and CNS.", reason: "Service lines are operational service lines, not facility types.", status: "Complete" },
-    { date: "Phase 3", decision: "Make scenario selection the controlling state.", reason: "Scenario choice should influence summary metrics, leader drill-down, workload view, and network relationships.", status: "In Progress" },
-    { date: "Phase 3", decision: "Add compare-all scenario mode.", reason: "Executives need to evaluate every optimized scenario against the current state at once.", status: "In Progress" }
-  ]
+const MODEL_DATA_PATHS = {
+  summaryMetrics: "data/summary_metrics.json",
+  leaderWorkloadSummary: "data/leader_workload_summary.json",
+  leaderDrilldown: "data/leader_drilldown.json",
+  newOpportunities: "data/new_opportunities.json",
+  sensitivityResults: "data/sensitivity_results.json",
+  networkNodesEdges: "data/network_nodes_edges.json",
+  optimizedAssignments: "data/optimized_assignments.json",
+  progressReports: "data/progress_reports.json"
 };
 
 const PREVIEW_LIMIT = 5;
+const DEFAULT_CAPACITY = 1;
+
+let dashboardData = null;
 let activeNetworkFilter = "all";
+
 let expandedTables = {
   opportunities: false,
   sensitivity: false,
@@ -282,55 +28,158 @@ let expandedTables = {
   decisions: false
 };
 
+// ============================================================
+// DOM references
+// ============================================================
+
 const tabButtons = document.querySelectorAll(".tab-button");
 const tabPanels = document.querySelectorAll(".tab-panel");
 const navCards = document.querySelectorAll(".nav-card");
+
 const scenarioSelect = document.getElementById("scenarioSelect");
 const scenarioWorkloadView = document.getElementById("scenarioWorkloadView");
 const drilldownLeaderSelect = document.getElementById("drilldownLeaderSelect");
 const opportunitySearch = document.getElementById("opportunitySearch");
 const opportunityReviewFilter = document.getElementById("opportunityReviewFilter");
 
-function getSelectedScenarioName() {
-  return scenarioSelect.value;
+// ============================================================
+// Utility helpers
+// ============================================================
+
+function getEl(id) {
+  return document.getElementById(id);
 }
 
-function isCompareAllMode() {
-  return getSelectedScenarioName() === "__all";
+function setHtml(id, html) {
+  const el = getEl(id);
+  if (el) el.innerHTML = html;
 }
 
-function getSingleScenarioName() {
-  return isCompareAllMode() ? "Balanced Growth" : getSelectedScenarioName();
+function setText(id, text) {
+  const el = getEl(id);
+  if (el) el.textContent = text;
 }
 
-function getSelectedScenario() {
-  return dashboardData.scenarios[getSingleScenarioName()];
+function pickValue(obj, keys, fallback = undefined) {
+  if (!obj) return fallback;
+
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") {
+      return obj[key];
+    }
+  }
+
+  return fallback;
 }
 
-function getAllScenarioNames() {
-  return Object.keys(dashboardData.scenarios);
+function pickNumber(obj, keys, fallback = 0) {
+  const value = pickValue(obj, keys, fallback);
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
-function switchTab(tabId) {
-  tabButtons.forEach(button => {
-    button.classList.toggle("active", button.dataset.tab === tabId);
+function toArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined || value === "") return [];
+
+  if (typeof value === "string") {
+    return value
+      .split(/[;,|]/)
+      .map(item => item.trim())
+      .filter(Boolean);
+  }
+
+  return [value];
+}
+
+function normalizeServiceLine(value) {
+  if (value === null || value === undefined) return "";
+
+  const cleaned = String(value).trim().toUpperCase();
+
+  if (cleaned === "EVS") return "EVS";
+  if (cleaned === "CNS") return "CNS";
+
+  if (
+    cleaned.includes("ENVIRONMENTAL") ||
+    cleaned.includes("HOUSEKEEP") ||
+    cleaned.includes("JANITORIAL")
+  ) {
+    return "EVS";
+  }
+
+  if (
+    cleaned.includes("CULINARY") ||
+    cleaned.includes("NUTRITION") ||
+    cleaned.includes("FOOD") ||
+    cleaned.includes("DINING")
+  ) {
+    return "CNS";
+  }
+
+  return "";
+}
+
+function formatNumber(value, decimals = 1) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+
+  return number.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   });
+}
 
-  tabPanels.forEach(panel => {
-    panel.classList.toggle("active", panel.id === tabId);
-  });
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0%";
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (number <= 2) {
+    return `${Math.round(number * 100)}%`;
+  }
+
+  return `${Math.round(number)}%`;
+}
+
+function countBy(items, key) {
+  return items.reduce((acc, item) => {
+    const value = typeof key === "function" ? key(item) : item[key];
+    const label = value || "--";
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function average(items, key) {
+  if (!items.length) return 0;
+
+  const total = items.reduce((sum, item) => {
+    return sum + Number(item[key] || 0);
+  }, 0);
+
+  return total / items.length;
 }
 
 function getBadgeClass(value) {
-  const text = String(value).toLowerCase();
+  const text = String(value || "").toLowerCase();
 
-  if (text.includes("over") || text.includes("review") || text.includes("required") || text.includes("elevated")) {
+  if (
+    text.includes("over") ||
+    text.includes("review") ||
+    text.includes("required") ||
+    text.includes("elevated") ||
+    text.includes("risk")
+  ) {
     return "risk";
   }
 
-  if (text.includes("near") || text.includes("medium") || text.includes("moderate") || text.includes("in progress")) {
+  if (
+    text.includes("near") ||
+    text.includes("medium") ||
+    text.includes("moderate") ||
+    text.includes("in progress") ||
+    text.includes("watch")
+  ) {
     return "warning";
   }
 
@@ -349,44 +198,643 @@ function getBadgeClass(value) {
   return "neutral";
 }
 
-function formatPercent(number) {
-  return `${Math.round(number)}%`;
+function getStatus(workload, capacity) {
+  const safeCapacity = Number(capacity || DEFAULT_CAPACITY);
+  const utilization = Number(workload || 0) / safeCapacity;
+
+  if (utilization > 1) return "Over Capacity";
+  if (utilization >= 0.95) return "Near Capacity";
+  if (utilization <= 0.75) return "Available Capacity";
+  return "Within Capacity";
 }
 
-function countBy(items, key) {
-  return items.reduce((acc, item) => {
-    const value = typeof key === "function" ? key(item) : item[key];
-    acc[value] = (acc[value] || 0) + 1;
+function getRiskLabel(overCapacityCount) {
+  if (overCapacityCount >= 4) return "Elevated";
+  if (overCapacityCount >= 2) return "Moderate";
+  return "Contained";
+}
+
+function getComplexityLabel(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "Medium";
+  if (number >= 1) return "High";
+  if (number <= -0.5) return "Low";
+  return "Medium";
+}
+
+// ============================================================
+// Data loading
+// ============================================================
+
+async function fetchModelJson(path, fallback) {
+  try {
+    const response = await fetch(path, { cache: "no-store" });
+
+    if (!response.ok) {
+      console.warn(`Could not load ${path}. Status: ${response.status}`);
+      return fallback;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn(`Unable to load ${path}`, error);
+    return fallback;
+  }
+}
+
+async function loadModelOutputs() {
+  return {
+    summaryMetrics: await fetchModelJson(MODEL_DATA_PATHS.summaryMetrics, {}),
+    leaderWorkloadSummary: await fetchModelJson(MODEL_DATA_PATHS.leaderWorkloadSummary, []),
+    leaderDrilldown: await fetchModelJson(MODEL_DATA_PATHS.leaderDrilldown, []),
+    newOpportunities: await fetchModelJson(MODEL_DATA_PATHS.newOpportunities, []),
+    sensitivityResults: await fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
+    networkNodesEdges: await fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
+    optimizedAssignments: await fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
+    progressReports: await fetchModelJson(MODEL_DATA_PATHS.progressReports, [])
+  };
+}
+
+// ============================================================
+// Model-output adapter
+// ============================================================
+
+function getScenarioName(row) {
+  return pickValue(
+    row,
+    ["scenario_name", "scenarioName", "scenario_label", "scenarioLabel", "name"],
+    "Unnamed Scenario"
+  );
+}
+
+function getScenarioCandidateScore(row) {
+  return pickNumber(
+    row,
+    ["candidate_score", "candidateScore", "baseline_score", "baselineScore"],
+    0
+  );
+}
+
+function getScenarioOptimizedScore(row) {
+  return pickNumber(
+    row,
+    ["optimized_score", "optimizedScore", "objectiveScore", "score"],
+    0
+  );
+}
+
+function getScenarioViolations(row) {
+  return pickNumber(
+    row,
+    ["violations", "capacity_violations", "capacityViolations", "constraintViolations"],
+    0
+  );
+}
+
+function getScenarioImprovement(row) {
+  const candidate = getScenarioCandidateScore(row);
+  const optimized = getScenarioOptimizedScore(row);
+
+  if (!candidate) return 0;
+
+  return ((candidate - optimized) / candidate) * 100;
+}
+
+function buildLeaderContextFromAssignments(assignments) {
+  const context = {};
+
+  assignments.forEach(row => {
+    const recordType = String(pickValue(row, ["Record Type", "record_type"], "")).toLowerCase();
+    const vp = pickValue(row, ["Assigned VP", "VP ID", "Leader", "leader_name"], null);
+
+    if (!vp) return;
+
+    if (!context[vp]) {
+      context[vp] = {
+        regions: {},
+        serviceLines: {},
+        currentFacilities: 0
+      };
+    }
+
+    const region = pickValue(row, ["Region", "region"], null);
+    const serviceLine = normalizeServiceLine(pickValue(row, ["Service Line", "service_line"], ""));
+
+    if (region) {
+      context[vp].regions[region] = (context[vp].regions[region] || 0) + 1;
+    }
+
+    if (serviceLine) {
+      context[vp].serviceLines[serviceLine] = (context[vp].serviceLines[serviceLine] || 0) + 1;
+    }
+
+    if (recordType === "current") {
+      context[vp].currentFacilities += 1;
+    }
+  });
+
+  return context;
+}
+
+function mostCommonKey(countObject, fallback = "--") {
+  const entries = Object.entries(countObject || {});
+  if (!entries.length) return fallback;
+
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
+
+function keysFromCountObject(countObject) {
+  return Object.keys(countObject || {}).filter(Boolean);
+}
+
+function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
+  const assignmentContext = buildLeaderContextFromAssignments(optimizedAssignments);
+
+  const drilldownByLeader = new Map(
+    leaderDrilldown.map(row => {
+      const key = pickValue(row, ["Leader", "VP ID", "leader_name", "VP Name"], "");
+      return [String(key), row];
+    })
+  );
+
+  return leaderSummary.map(row => {
+    const leaderName = pickValue(row, ["Leader", "VP ID", "leader_name", "VP Name"], "Unknown Leader");
+    const drilldown = drilldownByLeader.get(String(leaderName)) || {};
+    const context = assignmentContext[leaderName] || {};
+
+    const serviceMix = pickValue(drilldown, ["Service Mix", "service_mix"], {});
+    const serviceLinesFromMix =
+      serviceMix && typeof serviceMix === "object" && !Array.isArray(serviceMix)
+        ? Object.keys(serviceMix)
+        : [];
+
+    const serviceLines = [
+      ...new Set([
+        ...toArray(pickValue(row, ["Service_Lines", "Service Lines", "Service Line", "service_lines"], [])),
+        ...toArray(pickValue(drilldown, ["Service_Lines", "Service Lines", "Service Line", "service_lines"], [])),
+        ...serviceLinesFromMix,
+        ...keysFromCountObject(context.serviceLines)
+      ].map(normalizeServiceLine).filter(Boolean))
+    ];
+
+    const baseline = pickNumber(
+      row,
+      ["base Workload", "Base Workload", "baseline_workload", "Baseline Workload", "Current Workload"],
+      0
+    );
+
+    const optimized = pickNumber(
+      row,
+      ["Optimized Workload", "optimized_workload", "Final Workload"],
+      baseline
+    );
+
+    const capacity = pickNumber(row, ["Capacity", "capacity"], DEFAULT_CAPACITY);
+
+    const region = pickValue(
+      row,
+      ["Region", "region", "Market", "Division"],
+      pickValue(
+        drilldown,
+        ["Region", "region", "Market", "Division"],
+        mostCommonKey(context.regions, "--")
+      )
+    );
+
+    const facilityCount = pickNumber(
+      row,
+      ["base Facility Count", "Base Facility Count", "Current Facility Count", "facility_count", "Facility Count"],
+      context.currentFacilities || 0
+    );
+
+    return {
+      name: leaderName,
+      baseline,
+      optimized,
+      capacity,
+      region,
+      serviceLines,
+      serviceLine: serviceLines[0] || "--",
+      facilityCount,
+      capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatus(baseline, capacity)),
+      optimizedStatus: getStatus(optimized, capacity)
+    };
+  });
+}
+
+function buildOpportunities(opportunityRows) {
+  return opportunityRows.map(row => {
+    const id = pickValue(row, ["Facility ID", "Opportunity ID", "id", "opportunity_id"], "Opportunity");
+    const assignedVp = pickValue(
+      row,
+      ["Assigned VP", "Recommended VP", "assigned_vp", "assigned_leader", "recommended_vp"],
+      "--"
+    );
+
+    const currentVp = pickValue(row, ["Current VP", "current_vp"], null);
+    const serviceLine = normalizeServiceLine(pickValue(row, ["Service Line", "service_line"], ""));
+    const assignmentCost = pickNumber(row, ["Assignment Cost", "assignment_score", "score", "Score"], 0);
+    const region = pickValue(row, ["Region", "region"], "--");
+
+    const isReassignmentRaw = pickValue(row, ["Is Reassignment", "is_reassignment"], false);
+    const isReview =
+      isReassignmentRaw === true ||
+      String(isReassignmentRaw).toLowerCase() === "true" ||
+      pickValue(row, ["Review Required", "review"], false) === true;
+
+    return {
+      id: String(id).startsWith("Opportunity") ? String(id) : `Opportunity ${id}`,
+      baseLeader: currentVp || assignedVp,
+      altLeader: assignedVp,
+      leader: assignedVp,
+      region,
+      serviceLine,
+      facilityType: pickValue(row, ["Facility Type", "facility_type"], "New Opportunity"),
+      complexity: getComplexityLabel(pickValue(row, ["Facility Complexity Score", "complexity"], null)),
+      workload: Number(assignmentCost).toFixed(2),
+      score: Number(assignmentCost).toFixed(2),
+      impact: pickValue(row, ["Impact", "impact"], getStatus(assignmentCost, 1)),
+      review: isReview
+    };
+  });
+}
+
+function buildServiceLineScope(assignments, leaders) {
+  const currentAssignments = assignments.filter(row => {
+    const recordType = String(pickValue(row, ["Record Type", "record_type"], "")).toLowerCase();
+    return recordType === "current" || recordType === "";
+  });
+
+  const serviceLines = ["EVS", "CNS"];
+  const totalFacilities = currentAssignments.length || 1;
+
+  return serviceLines.map(serviceLine => {
+    const rows = currentAssignments.filter(row => {
+      return normalizeServiceLine(pickValue(row, ["Service Line", "service_line"], "")) === serviceLine;
+    });
+
+    const activeVpSet = new Set(
+      rows
+        .map(row => pickValue(row, ["Assigned VP", "VP ID", "Leader"], ""))
+        .filter(Boolean)
+    );
+
+    const relatedLeaders = leaders.filter(leader => {
+      return leader.serviceLines.includes(serviceLine);
+    });
+
+    const overCapacity = relatedLeaders.filter(leader => {
+      return leader.baseline > leader.capacity;
+    }).length;
+
+    const avgWorkload = relatedLeaders.length
+      ? relatedLeaders.reduce((sum, leader) => sum + Number(leader.baseline || 0), 0) / relatedLeaders.length
+      : 0;
+
+    const avgUtilization = relatedLeaders.length
+      ? relatedLeaders.reduce((sum, leader) => sum + (leader.baseline / leader.capacity), 0) / relatedLeaders.length
+      : 0;
+
+    return {
+      serviceLine,
+      facilities: rows.length,
+      activeVPs: activeVpSet.size || relatedLeaders.length,
+      avgUtilization: formatPercent(avgUtilization),
+      avgWorkload: Number(avgWorkload.toFixed(2)),
+      leadersOverCapacity: overCapacity,
+      networkShare: `${Math.round((rows.length / totalFacilities) * 100)}%`,
+      risk: getRiskLabel(overCapacity)
+    };
+  });
+}
+
+function buildRegionalScope(leaders) {
+  const grouped = leaders.reduce((acc, leader) => {
+    const region = leader.region || "--";
+    if (!acc[region]) acc[region] = [];
+    acc[region].push(leader);
     return acc;
   }, {});
+
+  return Object.entries(grouped).map(([region, rows]) => {
+    const overCapacity = rows.filter(row => row.baseline > row.capacity).length;
+
+    const avgUtilization = rows.length
+      ? rows.reduce((sum, row) => sum + (row.baseline / row.capacity), 0) / rows.length
+      : 0;
+
+    const highestUtilization = rows.length
+      ? Math.max(...rows.map(row => row.baseline / row.capacity))
+      : 0;
+
+    return {
+      region,
+      facilities: rows.reduce((sum, row) => sum + Number(row.facilityCount || 0), 0),
+      activeVPs: rows.length,
+      avgUtilization: formatPercent(avgUtilization),
+      highestUtilization: formatPercent(highestUtilization),
+      leadersOverCapacity: overCapacity,
+      risk: getRiskLabel(overCapacity)
+    };
+  });
 }
 
-function average(items, key) {
-  if (!items.length) return 0;
-  const total = items.reduce((sum, item) => sum + Number(item[key]), 0);
-  return total / items.length;
+function buildLeaderDetails(leaderDrilldown, opportunities) {
+  const details = {};
+
+  leaderDrilldown.forEach(row => {
+    const leaderName = pickValue(row, ["Leader", "VP ID", "leader_name"], "Unknown Leader");
+
+    const assignedFacilities = toArray(
+      pickValue(row, ["Assigned Facilities", "assigned_facilities"], [])
+    );
+
+    const assignedOpportunities = toArray(
+      pickValue(row, ["Assigned Opportunities", "assigned_opportunities"], [])
+    );
+
+    details[leaderName] = [
+      ...assignedFacilities.map(item => ({
+        name: `Facility ${pickValue(item, ["Facility ID", "id"], "")}`,
+        type: "Existing Facility",
+        serviceLine: normalizeServiceLine(pickValue(item, ["Service Line", "service_line"], "")),
+        facilityType: "Existing Facility",
+        region: pickValue(item, ["Region", "region"], "--"),
+        workload: Number(pickValue(item, ["Assignment Cost", "workload"], 0)).toFixed(2),
+        status: "Retained"
+      })),
+      ...assignedOpportunities.map(item => ({
+        name: `Opportunity ${pickValue(item, ["Facility ID", "Opportunity ID", "id"], "")}`,
+        type: "New Opportunity",
+        serviceLine: normalizeServiceLine(pickValue(item, ["Service Line", "service_line"], "")),
+        facilityType: "New Opportunity",
+        region: pickValue(item, ["Region", "region"], "--"),
+        workload: Number(pickValue(item, ["Assignment Cost", "workload"], 0)).toFixed(2),
+        status: "Added"
+      }))
+    ];
+  });
+
+  opportunities.forEach(opp => {
+    const leaderName = opp.leader || opp.altLeader || opp.baseLeader;
+    if (!leaderName || leaderName === "--") return;
+
+    if (!details[leaderName]) details[leaderName] = [];
+
+    const exists = details[leaderName].some(item => item.name === opp.id);
+    if (!exists) {
+      details[leaderName].push({
+        name: opp.id,
+        type: "New Opportunity",
+        serviceLine: opp.serviceLine,
+        facilityType: opp.facilityType,
+        region: opp.region,
+        workload: opp.workload,
+        status: opp.review ? "Review Required" : "Added"
+      });
+    }
+  });
+
+  return details;
 }
+
+function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunities) {
+  const scenarios = {};
+
+  const avgOptimizedUtilization = leaders.length
+    ? leaders.reduce((sum, leader) => sum + (leader.optimized / leader.capacity), 0) / leaders.length
+    : 0;
+
+  const highestOptimizedUtilization = leaders.length
+    ? Math.max(...leaders.map(leader => leader.optimized / leader.capacity))
+    : 0;
+
+  const optimizedOverCapacity = leaders.filter(leader => leader.optimized > leader.capacity).length;
+
+  scenarioRows.forEach(row => {
+    const name = getScenarioName(row);
+    const candidateScore = getScenarioCandidateScore(row);
+    const optimizedScore = getScenarioOptimizedScore(row);
+    const violations = getScenarioViolations(row);
+    const improvement = getScenarioImprovement(row);
+
+    const strategyMap = {
+      "Balanced Growth": "Balanced tradeoff",
+      "Capacity Protection": "Reduce overload risk",
+      "Geographic Efficiency": "Improve territory alignment",
+      "Service Line Fit": "Improve EVS/CNS alignment",
+      "Minimize Disruption": "Preserve current relationships"
+    };
+
+    const priorityMap = {
+      "Balanced Growth": "Balance workload, geography, EVS/CNS fit, and disruption",
+      "Capacity Protection": "Protect VP capacity first",
+      "Geographic Efficiency": "Reduce geographic spread and travel burden",
+      "Service Line Fit": "Match opportunities to service-line familiarity",
+      "Minimize Disruption": "Reduce implementation change"
+    };
+
+    scenarios[name] = {
+      strategy: strategyMap[name] || "Model-generated scenario",
+      priority: priorityMap[name] || "Evaluate model-generated assignment tradeoffs",
+      recommendationHeadline:
+        name === "Balanced Growth"
+          ? "Balanced Growth is the recommended default scenario."
+          : `${name} scenario highlights a different optimization tradeoff.`,
+      recommendationDetail:
+        "This scenario is generated from the Python model output and compared against the current-state baseline.",
+      optimizedMetrics: {
+        totalLeaders: summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaders.length,
+        newOpportunities:
+          summaryMetrics.total_new_opportunities ??
+          summaryMetrics.new_opportunity_count ??
+          opportunities.length,
+        reassignments:
+          summaryMetrics.reassignment_count ??
+          summaryMetrics.candidate_to_optimized_change_count ??
+          violations,
+        leadersOverCapacity:
+          summaryMetrics.optimized_over_capacity_count ??
+          optimizedOverCapacity,
+        averageUtilization: formatPercent(avgOptimizedUtilization),
+        highestUtilization: formatPercent(highestOptimizedUtilization),
+        workloadImprovement: `${improvement.toFixed(1)}%`,
+        objectiveScore: optimizedScore.toFixed(2),
+        constraintViolations: violations
+      },
+      leaderMultiplier: 1,
+      changeBias: 0,
+      baselineNarrative: [
+        "The current-state baseline reflects existing VP assignments before new opportunity optimization.",
+        "Capacity, service-line alignment, and assignment concentration are evaluated before growth is absorbed.",
+        "Current-state values come from the notebook-generated facilities model."
+      ],
+      optimizedNarrative: [
+        "The optimized state reflects model-generated assignments for the selected scenario.",
+        "Scenario results compare candidate score against optimized score.",
+        "Capacity violations and objective score are used to support executive tradeoff review."
+      ],
+      candidateScore,
+      optimizedScore,
+      violations,
+      improvement
+    };
+  });
+
+  return scenarios;
+}
+
+function buildDecisionLog(progressReports) {
+  const reports = toArray(progressReports);
+
+  if (!reports.length) {
+    return [
+      {
+        date: "Current",
+        decision: "Notebook-generated dashboard data loaded",
+        reason: "The dashboard reads JSON outputs exported from the Python notebook.",
+        status: "Complete"
+      },
+      {
+        date: "Current",
+        decision: "Removed embedded mock data",
+        reason: "Dashboard values now come from the model output files in the data folder.",
+        status: "Complete"
+      }
+    ];
+  }
+
+  return reports.map((item, index) => ({
+    date: item.date || `Report ${index + 1}`,
+    decision: item.title || item.decision || "Progress update",
+    reason: item.body || item.reason || "",
+    status: item.status || "Complete"
+  }));
+}
+
+function buildDashboardDataFromModel(modelOutputs) {
+  const summaryMetrics = modelOutputs.summaryMetrics || {};
+  const leaderSummary = toArray(modelOutputs.leaderWorkloadSummary);
+  const leaderDrilldown = toArray(modelOutputs.leaderDrilldown);
+  const opportunitiesRaw = toArray(modelOutputs.newOpportunities);
+  const sensitivityRows = toArray(modelOutputs.sensitivityResults);
+  const optimizedAssignments = toArray(modelOutputs.optimizedAssignments);
+
+  const leaders = buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments);
+  const opportunities = buildOpportunities(opportunitiesRaw);
+  const scenarios = buildScenarioObject(sensitivityRows, summaryMetrics, leaders, opportunities);
+
+  const totalLeaders = summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaders.length;
+
+  const existingFacilities =
+    summaryMetrics.total_facilities ??
+    summaryMetrics.current_facility_count ??
+    optimizedAssignments.filter(row => {
+      return String(pickValue(row, ["Record Type", "record_type"], "")).toLowerCase() === "current";
+    }).length;
+
+  const leadersOverCapacity =
+    summaryMetrics.base_over_capacity_count ??
+    leaders.filter(leader => leader.baseline > leader.capacity).length;
+
+  const averageUtilization = leaders.length
+    ? leaders.reduce((sum, leader) => sum + (leader.baseline / leader.capacity), 0) / leaders.length
+    : 0;
+
+  const highestUtilization = leaders.length
+    ? Math.max(...leaders.map(leader => leader.baseline / leader.capacity))
+    : 0;
+
+  const currentState = {
+    totalLeaders,
+    existingFacilities,
+    leadersOverCapacity,
+    averageUtilization: formatPercent(averageUtilization),
+    highestUtilization: formatPercent(highestUtilization),
+    currentRiskAreas: summaryMetrics.base_capacity_violations ?? leadersOverCapacity,
+    serviceLineScope: buildServiceLineScope(optimizedAssignments, leaders),
+    regionalScope: buildRegionalScope(leaders),
+    observations: [
+      {
+        title: "Capacity pressure is uneven",
+        body: "The current model identifies leaders who are over capacity, near capacity, or available for additional work."
+      },
+      {
+        title: "Service-line scope is limited to EVS and CNS",
+        body: "The dashboard treats EVS and CNS as the only valid service lines for this project."
+      },
+      {
+        title: "Regional coverage is model-driven",
+        body: "Region values are pulled from notebook-exported leader and assignment data."
+      },
+      {
+        title: "Reoptimization matters",
+        body: "Current assignments are compared against optimized assignments generated by the model."
+      }
+    ]
+  };
+
+  return {
+    currentState,
+    scenarios,
+    leaders,
+    opportunities,
+    leaderDetails: buildLeaderDetails(leaderDrilldown, opportunities),
+    decisionLog: buildDecisionLog(modelOutputs.progressReports),
+    rawModelOutputs: modelOutputs
+  };
+}
+
+// ============================================================
+// Dashboard state helpers
+// ============================================================
+
+function getSelectedScenarioName() {
+  return scenarioSelect?.value || Object.keys(dashboardData.scenarios)[0];
+}
+
+function isCompareAllMode() {
+  return getSelectedScenarioName() === "__all";
+}
+
+function getSingleScenarioName() {
+  return isCompareAllMode() ? "Balanced Growth" : getSelectedScenarioName();
+}
+
+function getSelectedScenario() {
+  return dashboardData.scenarios[getSingleScenarioName()] || Object.values(dashboardData.scenarios)[0];
+}
+
+function getAllScenarioNames() {
+  return Object.keys(dashboardData.scenarios || {});
+}
+
+// ============================================================
+// Rendering helpers
+// ============================================================
 
 function renderKpis(containerId, rows) {
-  document.getElementById(containerId).innerHTML = rows.map(row => `
+  setHtml(containerId, rows.map(row => `
     <div class="metric-card">
       <span>${row.label}</span>
       <strong>${row.value}</strong>
       ${row.note ? `<small>${row.note}</small>` : ""}
     </div>
-  `).join("");
+  `).join(""));
 }
 
 function renderPills(containerId, rows) {
-  document.getElementById(containerId).innerHTML = rows.map(row => `
+  setHtml(containerId, rows.map(row => `
     <span class="pill">${row.label} <strong>${row.value}</strong></span>
-  `).join("");
+  `).join(""));
 }
 
 function renderCompactWorkload(containerId, rows, mode = "current") {
-  document.getElementById(containerId).innerHTML = rows.map(row => {
+  setHtml(containerId, rows.map(row => {
     const value = mode === "current" ? row.baseline : row.optimized;
-    const utilization = (value / row.capacity) * 100;
+    const utilization = (Number(value || 0) / Number(row.capacity || DEFAULT_CAPACITY)) * 100;
     const fillClass = utilization > 100 ? "red" : utilization >= 95 ? "yellow" : "green";
     const status = getStatus(value, row.capacity);
 
@@ -396,21 +844,23 @@ function renderCompactWorkload(containerId, rows, mode = "current") {
         <div class="bar-track">
           <div class="bar-fill ${fillClass}" style="width:${Math.min(utilization, 120)}%"></div>
         </div>
-        <span>${formatPercent(utilization)}</span>
+        <span>${Math.round(utilization)}%</span>
         <span class="badge ${getBadgeClass(status)}">${status}</span>
       </div>
     `;
-  }).join("");
+  }).join(""));
 }
 
 function renderPreviewTable(tbodyId, statusId, buttonId, rows, expandedKey, renderRow) {
   const expanded = expandedTables[expandedKey];
   const visibleRows = expanded ? rows : rows.slice(0, PREVIEW_LIMIT);
 
-  document.getElementById(tbodyId).innerHTML = visibleRows.map(renderRow).join("");
+  setHtml(tbodyId, visibleRows.map(renderRow).join(""));
 
-  const status = document.getElementById(statusId);
-  const button = document.getElementById(buttonId);
+  const status = getEl(statusId);
+  const button = getEl(buttonId);
+
+  if (!status || !button) return;
 
   if (rows.length <= PREVIEW_LIMIT) {
     status.textContent = `Showing ${rows.length} rows`;
@@ -419,74 +869,31 @@ function renderPreviewTable(tbodyId, statusId, buttonId, rows, expandedKey, rend
     status.textContent = expanded
       ? `Showing all ${rows.length} rows`
       : `Showing first ${visibleRows.length} of ${rows.length} rows`;
+
     button.textContent = expanded ? "Show less" : "Show all";
     button.classList.remove("hidden");
   }
 }
 
-function calculateOptimizedWorkload(leader, scenarioName = getSingleScenarioName()) {
-  const scenario = dashboardData.scenarios[scenarioName];
-  const numericId = Number(leader.name.replace("VP-", ""));
-  const adjustment = ((numericId % 5) - 2) * 0.28;
-  const value = leader.baseline * scenario.leaderMultiplier + adjustment + scenario.changeBias;
-  return Math.max(8, Number(value.toFixed(1)));
-}
+// ============================================================
+// Tab switching
+// ============================================================
 
-function getStatus(workload, capacity) {
-  const utilization = workload / capacity;
-
-  if (utilization > 1) return "Over Capacity";
-  if (utilization >= 0.95) return "Near Capacity";
-  if (utilization <= 0.75) return "Available Capacity";
-  return "Within Capacity";
-}
-
-function getScenarioLeaderRows(scenarioName = getSingleScenarioName()) {
-  return dashboardData.leaders.map(leader => {
-    const optimized = calculateOptimizedWorkload(leader, scenarioName);
-    const optimizedStatus = getStatus(optimized, leader.capacity);
-    const change = Number((optimized - leader.baseline).toFixed(1));
-
-    return {
-      ...leader,
-      optimized,
-      optimizedStatus,
-      change
-    };
+function switchTab(tabId) {
+  tabButtons.forEach(button => {
+    button.classList.toggle("active", button.dataset.tab === tabId);
   });
-}
 
-function getScenarioOpportunityRows(scenarioName = getSingleScenarioName()) {
-  return dashboardData.opportunities.map((row, index) => {
-    let leader = row.baseLeader;
-
-    if (scenarioName === "Capacity Protection" && row.review) {
-      leader = row.altLeader;
-    }
-
-    if (scenarioName === "Geographic Efficiency") {
-      leader = row.region === "West" ? "VP-011" :
-        row.region === "Southeast" ? "VP-010" :
-        row.region === "Midwest" ? "VP-009" :
-        row.baseLeader;
-    }
-
-    if (scenarioName === "Service Line Fit") {
-      leader = row.serviceLine === "EVS"
-        ? `VP-${String(((index * 2) % 30) + 1).padStart(3, "0")}`
-        : `VP-${String(((index * 2 + 5) % 30) + 1).padStart(3, "0")}`;
-    }
-
-    if (scenarioName === "Minimize Disruption") {
-      leader = row.baseLeader;
-    }
-
-    return {
-      ...row,
-      leader
-    };
+  tabPanels.forEach(panel => {
+    panel.classList.toggle("active", panel.id === tabId);
   });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+// ============================================================
+// Current state
+// ============================================================
 
 function renderCurrentState() {
   const cs = dashboardData.currentState;
@@ -506,7 +913,7 @@ function renderCurrentState() {
 
   renderCompactWorkload("currentWorkloadList", priorityRows, "current");
 
-  document.getElementById("serviceLineScopeCards").innerHTML = cs.serviceLineScope.map(item => `
+  setHtml("serviceLineScopeCards", cs.serviceLineScope.map(item => `
     <div class="scope-card">
       <div class="scope-card-header">
         <h3>${item.serviceLine}</h3>
@@ -521,9 +928,9 @@ function renderCurrentState() {
         <div class="scope-stat"><span>Risk</span><strong><span class="badge ${getBadgeClass(item.risk)}">${item.risk}</span></strong></div>
       </div>
     </div>
-  `).join("");
+  `).join(""));
 
-  document.getElementById("regionalScopeCards").innerHTML = cs.regionalScope.map(item => `
+  setHtml("regionalScopeCards", cs.regionalScope.map(item => `
     <div class="scope-card">
       <div class="scope-card-header">
         <h3>${item.region}</h3>
@@ -536,32 +943,40 @@ function renderCurrentState() {
         <div class="scope-stat"><span>Highest</span><strong>${item.highestUtilization}</strong></div>
       </div>
     </div>
-  `).join("");
+  `).join(""));
 
-  document.getElementById("currentStateObservations").innerHTML = cs.observations.map(item => `
+  setHtml("currentStateObservations", cs.observations.map(item => `
     <div class="observation-card">
       <h3>${item.title}</h3>
       <p>${item.body}</p>
     </div>
-  `).join("");
+  `).join(""));
 }
 
+// ============================================================
+// Home
+// ============================================================
+
 function renderHome() {
-  const scenario = dashboardData.scenarios["Balanced Growth"];
+  const scenario = dashboardData.scenarios["Balanced Growth"] || Object.values(dashboardData.scenarios)[0];
   const cs = dashboardData.currentState;
 
-  document.getElementById("homeRecommendationHeadline").textContent = scenario.recommendationHeadline;
-  document.getElementById("homeRecommendationDetail").textContent = scenario.recommendationDetail;
+  setText("homeRecommendationHeadline", scenario?.recommendationHeadline || "Model outputs loaded");
+  setText("homeRecommendationDetail", scenario?.recommendationDetail || "Dashboard is populated from notebook-generated JSON files.");
 
   renderKpis("homeKpis", [
     { label: "Total VP Network", value: cs.totalLeaders },
     { label: "Existing Facilities", value: cs.existingFacilities },
-    { label: "New Opportunities", value: scenario.optimizedMetrics.newOpportunities },
-    { label: "Recommended Changes", value: scenario.optimizedMetrics.reassignments },
-    { label: "Capacity Risk", value: `${cs.leadersOverCapacity} → ${scenario.optimizedMetrics.leadersOverCapacity}` },
-    { label: "Objective Score", value: scenario.optimizedMetrics.objectiveScore }
+    { label: "New Opportunities", value: scenario?.optimizedMetrics?.newOpportunities ?? dashboardData.opportunities.length },
+    { label: "Recommended Changes", value: scenario?.optimizedMetrics?.reassignments ?? "--" },
+    { label: "Capacity Risk", value: `${cs.leadersOverCapacity} → ${scenario?.optimizedMetrics?.leadersOverCapacity ?? "--"}` },
+    { label: "Objective Score", value: scenario?.optimizedMetrics?.objectiveScore ?? "--" }
   ]);
 }
+
+// ============================================================
+// Scenarios
+// ============================================================
 
 function renderScenario() {
   if (isCompareAllMode()) {
@@ -583,13 +998,13 @@ function renderSingleScenarioMode() {
   const cs = dashboardData.currentState;
   const optimized = scenario.optimizedMetrics;
 
-  document.getElementById("summaryTitle").textContent = "Current state vs optimized state";
-  document.getElementById("summaryIntro").textContent = "Side-by-side comparison of the baseline network and selected scenario.";
-  document.getElementById("recommendationHeadline").textContent = scenario.recommendationHeadline;
-  document.getElementById("recommendationDetail").textContent = `${scenario.priority}. ${scenario.recommendationDetail}`;
+  setText("summaryTitle", "Current state vs optimized state");
+  setText("summaryIntro", "Side-by-side comparison of the baseline network and selected scenario.");
+  setText("recommendationHeadline", scenario.recommendationHeadline);
+  setText("recommendationDetail", `${scenario.priority}. ${scenario.recommendationDetail}`);
 
-  document.getElementById("singleScenarioSummary").classList.remove("hidden");
-  document.getElementById("allScenarioSummary").classList.add("hidden");
+  getEl("singleScenarioSummary")?.classList.remove("hidden");
+  getEl("allScenarioSummary")?.classList.add("hidden");
 
   const comparisons = [
     { label: "Over Capacity", baseline: cs.leadersOverCapacity, optimized: optimized.leadersOverCapacity },
@@ -600,7 +1015,7 @@ function renderSingleScenarioMode() {
     { label: "Constraint Violations", baseline: cs.currentRiskAreas, optimized: optimized.constraintViolations }
   ];
 
-  document.getElementById("scenarioComparisonCards").innerHTML = comparisons.map(item => `
+  setHtml("scenarioComparisonCards", comparisons.map(item => `
     <div class="compare-card">
       <span>${item.label}</span>
       <div class="compare-values">
@@ -609,22 +1024,22 @@ function renderSingleScenarioMode() {
         <div class="compare-value"><small>Optimized</small><strong>${item.optimized}</strong></div>
       </div>
     </div>
-  `).join("");
+  `).join(""));
 
-  document.getElementById("baselineNarrative").innerHTML = scenario.baselineNarrative.map(item => `<li>${item}</li>`).join("");
-  document.getElementById("optimizedNarrative").innerHTML = scenario.optimizedNarrative.map(item => `<li>${item}</li>`).join("");
+  setHtml("baselineNarrative", scenario.baselineNarrative.map(item => `<li>${item}</li>`).join(""));
+  setHtml("optimizedNarrative", scenario.optimizedNarrative.map(item => `<li>${item}</li>`).join(""));
 }
 
 function renderAllScenarioMode() {
-  document.getElementById("summaryTitle").textContent = "Current state vs all optimized scenarios";
-  document.getElementById("summaryIntro").textContent = "Compact comparison of every scenario against the current-state baseline.";
-  document.getElementById("recommendationHeadline").textContent = "Compare All Scenarios";
-  document.getElementById("recommendationDetail").textContent = "This mode shows each strategy side by side so leadership can compare tradeoffs before drilling into a single recommendation.";
+  setText("summaryTitle", "Current state vs all optimized scenarios");
+  setText("summaryIntro", "Compact comparison of every scenario against the current-state baseline.");
+  setText("recommendationHeadline", "Compare All Scenarios");
+  setText("recommendationDetail", "This mode shows each strategy side by side so leadership can compare tradeoffs before drilling into a single recommendation.");
 
-  document.getElementById("singleScenarioSummary").classList.add("hidden");
-  document.getElementById("allScenarioSummary").classList.remove("hidden");
+  getEl("singleScenarioSummary")?.classList.add("hidden");
+  getEl("allScenarioSummary")?.classList.remove("hidden");
 
-  document.getElementById("allScenarioSummary").innerHTML = getAllScenarioNames().map(name => scenarioCard(name)).join("");
+  setHtml("allScenarioSummary", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
 }
 
 function scenarioCard(name) {
@@ -643,6 +1058,17 @@ function scenarioCard(name) {
       </div>
     </div>
   `;
+}
+
+// ============================================================
+// Opportunities
+// ============================================================
+
+function getScenarioOpportunityRows() {
+  return dashboardData.opportunities.map(row => ({
+    ...row,
+    leader: row.leader || row.altLeader || row.baseLeader
+  }));
 }
 
 function renderOpportunitySection() {
@@ -673,8 +1099,8 @@ function renderOpportunitySection() {
 }
 
 function renderOpportunityTable() {
-  const query = opportunitySearch.value.toLowerCase();
-  const reviewFilter = opportunityReviewFilter.value;
+  const query = String(opportunitySearch?.value || "").toLowerCase();
+  const reviewFilter = opportunityReviewFilter?.value || "all";
 
   const rows = getScenarioOpportunityRows().filter(row => {
     const matchesSearch = [
@@ -684,7 +1110,8 @@ function renderOpportunityTable() {
       row.serviceLine,
       row.facilityType,
       row.complexity,
-      row.impact
+      row.impact,
+      row.score
     ].join(" ").toLowerCase().includes(query);
 
     const matchesReview =
@@ -710,6 +1137,7 @@ function renderOpportunityTable() {
         <td>${row.facilityType}</td>
         <td>${row.complexity}</td>
         <td>${row.workload}</td>
+        <td>${row.score ?? row.workload ?? "--"}</td>
         <td><span class="badge ${getBadgeClass(row.impact)}">${row.impact}</span></td>
         <td><span class="badge ${row.review ? "risk" : "good"}">${row.review ? "Review Required" : "Clear"}</span></td>
       </tr>
@@ -717,13 +1145,43 @@ function renderOpportunityTable() {
   );
 }
 
+// ============================================================
+// Workload
+// ============================================================
+
+function calculateOptimizedWorkload(leader) {
+  if (leader.optimized !== undefined && leader.optimized !== null) {
+    return Number(Number(leader.optimized).toFixed(2));
+  }
+
+  return Number(Number(leader.baseline || 0).toFixed(2));
+}
+
+function getScenarioLeaderRows() {
+  return dashboardData.leaders.map(leader => {
+    const optimized = calculateOptimizedWorkload(leader);
+    const optimizedStatus = getStatus(optimized, leader.capacity);
+    const change = Number((optimized - leader.baseline).toFixed(2));
+
+    return {
+      ...leader,
+      optimized,
+      optimizedStatus,
+      change
+    };
+  });
+}
+
 function renderWorkloadSection() {
   if (isCompareAllMode()) {
-    document.getElementById("scenarioWorkloadCaption").textContent =
-      "Compare-all mode summarizes scenario strategy. Select a single scenario for VP-level workload bars.";
+    setText(
+      "scenarioWorkloadCaption",
+      "Compare-all mode summarizes scenario strategy. Select a single scenario for VP-level workload bars."
+    );
 
-    document.getElementById("workloadList").innerHTML = getAllScenarioNames().map(name => {
+    setHtml("workloadList", getAllScenarioNames().map(name => {
       const scenario = dashboardData.scenarios[name];
+
       return `
         <div class="compact-row">
           <strong>${name}</strong>
@@ -734,29 +1192,31 @@ function renderWorkloadSection() {
           </span>
         </div>
       `;
-    }).join("");
+    }).join(""));
 
     return;
   }
 
   let rows = getScenarioLeaderRows();
 
-  if (scenarioWorkloadView.value === "Largest Change") {
+  if (scenarioWorkloadView?.value === "Largest Change") {
     rows = rows.sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 8);
-  } else if (scenarioWorkloadView.value !== "all") {
+  } else if (scenarioWorkloadView?.value && scenarioWorkloadView.value !== "all") {
     rows = rows.filter(row => row.optimizedStatus === scenarioWorkloadView.value);
   } else {
     rows = rows.sort((a, b) => (b.optimized / b.capacity) - (a.optimized / a.capacity)).slice(0, 10);
   }
 
-  document.getElementById("scenarioWorkloadCaption").textContent =
-    `${getSingleScenarioName()} · ${scenarioWorkloadView.options[scenarioWorkloadView.selectedIndex].text}`;
+  setText(
+    "scenarioWorkloadCaption",
+    `${getSingleScenarioName()} · ${scenarioWorkloadView?.options?.[scenarioWorkloadView.selectedIndex]?.text || "All"}`
+  );
 
   renderCompactWorkload("workloadList", rows, "optimized");
 }
 
 function renderSensitivitySection() {
-  document.getElementById("sensitivityCards").innerHTML = getAllScenarioNames().map(name => scenarioCard(name)).join("");
+  setHtml("sensitivityCards", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
 
   const rows = getAllScenarioNames().map(name => {
     const s = dashboardData.scenarios[name];
@@ -793,8 +1253,15 @@ function renderSensitivitySection() {
   );
 }
 
+// ============================================================
+// Leader drilldown
+// ============================================================
+
 function populateLeaderSelector() {
+  if (!drilldownLeaderSelect) return;
+
   const leaderNames = dashboardData.leaders.map(leader => leader.name);
+
   drilldownLeaderSelect.innerHTML = [
     `<option value="__all">All Leaders Summary</option>`,
     ...leaderNames.map(name => `<option value="${name}">${name}</option>`)
@@ -802,11 +1269,14 @@ function populateLeaderSelector() {
 }
 
 function renderLeaderDrilldown() {
-  const selectedLeader = drilldownLeaderSelect.value;
+  const selectedLeader = drilldownLeaderSelect?.value || "__all";
 
-  document.getElementById("leaderActiveStrategy").textContent = isCompareAllMode()
-    ? "Compare All Scenarios"
-    : `${getSingleScenarioName()} · ${getSelectedScenario().strategy}`;
+  setText(
+    "leaderActiveStrategy",
+    isCompareAllMode()
+      ? "Compare All Scenarios"
+      : `${getSingleScenarioName()} · ${getSelectedScenario()?.strategy || ""}`
+  );
 
   if (selectedLeader === "__all") {
     renderAllLeadersSummary();
@@ -816,64 +1286,47 @@ function renderLeaderDrilldown() {
 }
 
 function renderAllLeadersSummary() {
-  document.getElementById("leaderSummaryMode").classList.remove("hidden");
-  document.getElementById("singleLeaderMode").classList.add("hidden");
-
-  if (isCompareAllMode()) {
-    renderKpis("leaderKpis", [
-      { label: "Total VP Network", value: dashboardData.currentState.totalLeaders },
-      { label: "Baseline Over Cap.", value: dashboardData.currentState.leadersOverCapacity },
-      { label: "Best Over Cap.", value: "1", note: "Capacity Protection" },
-      { label: "Best Score", value: "0.69", note: "Capacity Protection" },
-      { label: "Fewest Changes", value: "6", note: "Minimize Disruption" },
-      { label: "Default Strategy", value: "Balanced" }
-    ]);
-
-    document.getElementById("leaderScenarioComparison").innerHTML = getAllScenarioNames().map(name => scenarioCard(name)).join("");
-    return;
-  }
+  getEl("leaderSummaryMode")?.classList.remove("hidden");
+  getEl("singleLeaderMode")?.classList.add("hidden");
 
   const rows = getScenarioLeaderRows();
   const overCapacity = rows.filter(row => row.optimizedStatus === "Over Capacity").length;
   const nearCapacity = rows.filter(row => row.optimizedStatus === "Near Capacity").length;
-  const avgUtilization = average(rows.map(row => ({ utilization: (row.optimized / row.capacity) * 100 })), "utilization");
+
+  const avgUtilization = average(
+    rows.map(row => ({ utilization: (row.optimized / row.capacity) * 100 })),
+    "utilization"
+  );
+
   const largestIncrease = [...rows].sort((a, b) => b.change - a.change)[0];
   const largestDecrease = [...rows].sort((a, b) => a.change - b.change)[0];
 
   renderKpis("leaderKpis", [
-    { label: "Priority VP View", value: rows.length, note: "sample displayed" },
+    { label: "Total VP Network", value: rows.length },
     { label: "Over Capacity", value: overCapacity },
     { label: "Near Capacity", value: nearCapacity },
-    { label: "Avg Utilization", value: formatPercent(avgUtilization) },
-    { label: "Largest Increase", value: largestIncrease.name, note: `+${largestIncrease.change}` },
-    { label: "Largest Decrease", value: largestDecrease.name, note: `${largestDecrease.change}` }
+    { label: "Avg Utilization", value: `${Math.round(avgUtilization)}%` },
+    { label: "Largest Increase", value: largestIncrease?.name || "--", note: largestIncrease ? `+${largestIncrease.change}` : "" },
+    { label: "Largest Decrease", value: largestDecrease?.name || "--", note: largestDecrease ? `${largestDecrease.change}` : "" }
   ]);
 
-  document.getElementById("leaderScenarioComparison").innerHTML = `
-    <div class="scenario-card">
-      <h3>${getSingleScenarioName()}</h3>
-      <div class="strategy">${getSelectedScenario().strategy}</div>
-      <div class="score-grid">
-        <div class="score-item"><span>Over Capacity</span><strong>${overCapacity}</strong></div>
-        <div class="score-item"><span>Near Capacity</span><strong>${nearCapacity}</strong></div>
-        <div class="score-item"><span>Avg Util.</span><strong>${formatPercent(avgUtilization)}</strong></div>
-        <div class="score-item"><span>Strategy</span><strong>${getSelectedScenario().optimizedMetrics.objectiveScore}</strong></div>
-      </div>
-    </div>
-  `;
+  setHtml("leaderScenarioComparison", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
 }
 
 function renderSingleLeader(leaderName) {
-  document.getElementById("leaderSummaryMode").classList.add("hidden");
-  document.getElementById("singleLeaderMode").classList.remove("hidden");
+  getEl("leaderSummaryMode")?.classList.add("hidden");
+  getEl("singleLeaderMode")?.classList.remove("hidden");
 
   const leader = getScenarioLeaderRows().find(row => row.name === leaderName);
-  const utilization = formatPercent((leader.optimized / leader.capacity) * 100);
+
+  if (!leader) return;
+
+  const utilization = `${Math.round((leader.optimized / leader.capacity) * 100)}%`;
 
   renderKpis("leaderKpis", [
-    { label: "Baseline Workload", value: leader.baseline },
-    { label: "Optimized Workload", value: leader.optimized },
-    { label: "Capacity", value: leader.capacity },
+    { label: "Baseline Workload", value: formatNumber(leader.baseline, 2) },
+    { label: "Optimized Workload", value: formatNumber(leader.optimized, 2) },
+    { label: "Capacity", value: formatNumber(leader.capacity, 2) },
     { label: "Utilization", value: utilization },
     { label: "Change", value: leader.change > 0 ? `+${leader.change}` : leader.change },
     { label: "Status", value: leader.optimizedStatus }
@@ -892,21 +1345,22 @@ function renderLeaderBars(leader) {
     { label: "Capacity", value: leader.capacity }
   ];
 
-  const max = Math.max(...rows.map(row => row.value));
+  const max = Math.max(...rows.map(row => Number(row.value || 0)), 1);
 
-  document.getElementById("leaderWorkloadComparison").innerHTML = rows.map(row => `
+  setHtml("leaderWorkloadComparison", rows.map(row => `
     <div class="compare-bar-row">
       <span>${row.label}</span>
       <div class="bar-track">
         <div class="bar-fill ${row.label === "Capacity" ? "yellow" : "green"}" style="width:${(row.value / max) * 100}%"></div>
       </div>
-      <strong>${row.value}</strong>
+      <strong>${formatNumber(row.value, 2)}</strong>
     </div>
-  `).join("");
+  `).join(""));
 }
 
 function getLeaderDetailRows(leaderName) {
   const baseRows = dashboardData.leaderDetails[leaderName] || [];
+
   const opportunityRows = getScenarioOpportunityRows()
     .filter(row => row.leader === leaderName)
     .map(row => ({
@@ -925,20 +1379,24 @@ function getLeaderDetailRows(leaderName) {
 function renderLeaderPortfolio(leaderName) {
   const details = getLeaderDetailRows(leaderName);
   const counts = countBy(details, "serviceLine");
-  renderPills("leaderPortfolioMix", Object.entries(counts).map(([label, value]) => ({ label, value })));
+
+  renderPills(
+    "leaderPortfolioMix",
+    Object.entries(counts).map(([label, value]) => ({ label, value }))
+  );
 }
 
 function renderCandidateComparison(leaderName) {
   const candidate = getScenarioOpportunityRows().find(row => row.leader === leaderName && row.altLeader);
 
   if (!candidate) {
-    document.getElementById("candidateComparison").innerHTML = `
+    setHtml("candidateComparison", `
       <p>No high-confidence alternate VP comparison is flagged for this leader in the current scenario.</p>
-    `;
+    `);
     return;
   }
 
-  document.getElementById("candidateComparison").innerHTML = `
+  setHtml("candidateComparison", `
     <div class="summary-duo">
       <div class="summary-column">
         <h3>${candidate.leader}</h3>
@@ -957,7 +1415,7 @@ function renderCandidateComparison(leaderName) {
         </ul>
       </div>
     </div>
-  `;
+  `);
 }
 
 function renderLeaderTable(leaderName) {
@@ -983,77 +1441,67 @@ function renderLeaderTable(leaderName) {
   );
 }
 
+// ============================================================
+// Network
+// ============================================================
+
 function buildNetworkData() {
-  const opportunities = getScenarioOpportunityRows();
+  const rawNetwork = dashboardData.rawModelOutputs?.networkNodesEdges;
 
-  const leaderNodes = dashboardData.leaders.map(leader => {
-    const optimized = calculateOptimizedWorkload(leader);
-    return {
-      id: leader.name,
-      type: "leader",
-      review: getStatus(optimized, leader.capacity) === "Over Capacity"
-    };
-  });
+  if (rawNetwork && Array.isArray(rawNetwork.nodes) && Array.isArray(rawNetwork.edges)) {
+    const nodes = rawNetwork.nodes.map(node => {
+      let type = node.type || node.group || "node";
 
-  const opportunityNodes = opportunities.map(row => ({
-    id: row.id,
-    type: "opportunity",
-    review: row.review
-  }));
+      if (type === "current") type = "facility";
+      if (type === "service_line") type = "service-line";
 
-  const serviceLineNodes = [
-    { id: "EVS", type: "service-line", review: false },
-    { id: "CNS", type: "service-line", review: false }
-  ];
+      return {
+        id: node.id,
+        type,
+        review: false
+      };
+    });
 
-  const facilityNodes = [
-    { id: "Facility 101", type: "facility", review: false },
-    { id: "Facility 204", type: "facility", review: false },
-    { id: "Facility 310", type: "facility", review: false },
-    { id: "Facility 405", type: "facility", review: false },
-    { id: "Facility 704", type: "facility", review: true }
-  ];
+    const validNodeIds = new Set(nodes.map(node => String(node.id)));
 
-  const assignmentEdges = opportunities.map(row => ({
-    source: row.leader,
-    target: row.id,
-    relationship: row.review ? "recommended assignment / review" : "recommended assignment"
-  }));
+    const edges = rawNetwork.edges
+      .filter(edge => validNodeIds.has(String(edge.source)) && validNodeIds.has(String(edge.target)))
+      .map(edge => ({
+        source: edge.source,
+        target: edge.target,
+        relationship: edge.relationship || edge.type || "relationship"
+      }));
 
-  const serviceLineEdges = opportunities.map(row => ({
-    source: row.id,
-    target: row.serviceLine,
-    relationship: "service line"
-  }));
-
-  const facilityEdges = [
-    { source: "VP-001", target: "Facility 101", relationship: "current assignment" },
-    { source: "VP-002", target: "Facility 204", relationship: "current assignment" },
-    { source: "VP-003", target: "Facility 310", relationship: "current assignment" },
-    { source: "VP-004", target: "Facility 405", relationship: "current assignment" }
-  ];
+    return { nodes, edges };
+  }
 
   return {
-    nodes: [...leaderNodes, ...facilityNodes, ...opportunityNodes, ...serviceLineNodes],
-    edges: [...facilityEdges, ...assignmentEdges, ...serviceLineEdges]
+    nodes: [],
+    edges: []
   };
 }
 
 function renderNetwork() {
   if (isCompareAllMode()) {
-    document.getElementById("networkIntro").textContent =
-      "Compare-all mode summarizes network impact by scenario. Select a single scenario for node-level relationships.";
-    document.getElementById("networkSingleMode").classList.add("hidden");
-    document.getElementById("networkAllMode").classList.remove("hidden");
-    document.getElementById("networkScenarioSummary").innerHTML = getAllScenarioNames().map(name => scenarioCard(name)).join("");
+    setText(
+      "networkIntro",
+      "Compare-all mode summarizes network impact by scenario. Select a single scenario for node-level relationships."
+    );
+
+    getEl("networkSingleMode")?.classList.add("hidden");
+    getEl("networkAllMode")?.classList.remove("hidden");
+
+    setHtml("networkScenarioSummary", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
     return;
   }
 
-  document.getElementById("networkIntro").textContent =
-    `Network view for ${getSingleScenarioName()} · ${getSelectedScenario().strategy}.`;
+  setText(
+    "networkIntro",
+    `Network view for ${getSingleScenarioName()} · ${getSelectedScenario()?.strategy || ""}.`
+  );
 
-  document.getElementById("networkSingleMode").classList.remove("hidden");
-  document.getElementById("networkAllMode").classList.add("hidden");
+  getEl("networkSingleMode")?.classList.remove("hidden");
+  getEl("networkAllMode")?.classList.add("hidden");
 
   const network = buildNetworkData();
 
@@ -1065,42 +1513,28 @@ function renderNetwork() {
 
   const visibleNodeIds = new Set(nodes.map(node => node.id));
 
-  document.getElementById("networkNodes").innerHTML = nodes.map(node => `
+  setHtml("networkNodes", nodes.map(node => `
     <div class="network-node ${node.type} ${node.review ? "review" : ""}">
       ${node.id}
     </div>
-  `).join("");
+  `).join(""));
 
   const edges = network.edges.filter(edge => {
     if (activeNetworkFilter === "all") return true;
     return visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);
   });
 
-  document.getElementById("networkEdges").innerHTML = edges.slice(0, 18).map(edge => `
+  setHtml("networkEdges", edges.slice(0, 18).map(edge => `
     <div class="network-edge">
       <strong>${edge.source}</strong> → <strong>${edge.target}</strong>
       <span>(${edge.relationship})</span>
     </div>
-  `).join("");
+  `).join(""));
 }
 
-function scenarioCard(name) {
-  const scenario = dashboardData.scenarios[name];
-  const m = scenario.optimizedMetrics;
-
-  return `
-    <div class="scenario-card">
-      <h3>${name}</h3>
-      <div class="strategy">${scenario.strategy}</div>
-      <div class="score-grid">
-        <div class="score-item"><span>Score</span><strong>${m.objectiveScore}</strong></div>
-        <div class="score-item"><span>Violations</span><strong>${m.constraintViolations}</strong></div>
-        <div class="score-item"><span>Over Cap.</span><strong>${m.leadersOverCapacity}</strong></div>
-        <div class="score-item"><span>Changes</span><strong>${m.reassignments}</strong></div>
-      </div>
-    </div>
-  `;
-}
+// ============================================================
+// Decision log
+// ============================================================
 
 function renderDecisionLog() {
   renderPreviewTable(
@@ -1120,51 +1554,107 @@ function renderDecisionLog() {
   );
 }
 
-tabButtons.forEach(button => {
-  button.addEventListener("click", () => switchTab(button.dataset.tab));
-});
+// ============================================================
+// Event setup
+// ============================================================
 
-navCards.forEach(card => {
-  card.addEventListener("click", () => switchTab(card.dataset.goTab));
-});
-
-document.querySelectorAll(".network-filter").forEach(button => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".network-filter").forEach(item => item.classList.remove("active"));
-    button.classList.add("active");
-    activeNetworkFilter = button.dataset.filter;
-    renderNetwork();
+function setupEvents() {
+  tabButtons.forEach(button => {
+    button.addEventListener("click", () => switchTab(button.dataset.tab));
   });
+
+  navCards.forEach(card => {
+    card.addEventListener("click", () => switchTab(card.dataset.goTab));
+  });
+
+  document.querySelectorAll(".network-filter").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".network-filter").forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+      activeNetworkFilter = button.dataset.filter;
+      renderNetwork();
+    });
+  });
+
+  scenarioSelect?.addEventListener("change", renderScenario);
+  scenarioWorkloadView?.addEventListener("change", renderWorkloadSection);
+  opportunitySearch?.addEventListener("input", renderOpportunityTable);
+  opportunityReviewFilter?.addEventListener("change", renderOpportunityTable);
+  drilldownLeaderSelect?.addEventListener("change", renderLeaderDrilldown);
+
+  getEl("toggleOpportunityTable")?.addEventListener("click", () => {
+    expandedTables.opportunities = !expandedTables.opportunities;
+    renderOpportunityTable();
+  });
+
+  getEl("toggleSensitivityTable")?.addEventListener("click", () => {
+    expandedTables.sensitivity = !expandedTables.sensitivity;
+    renderSensitivitySection();
+  });
+
+  getEl("toggleLeaderTable")?.addEventListener("click", () => {
+    expandedTables.leader = !expandedTables.leader;
+    renderLeaderDrilldown();
+  });
+
+  getEl("toggleDecisionTable")?.addEventListener("click", () => {
+    expandedTables.decisions = !expandedTables.decisions;
+    renderDecisionLog();
+  });
+}
+
+// ============================================================
+// Initialization
+// ============================================================
+
+async function initializeDashboard() {
+  try {
+    const modelOutputs = await loadModelOutputs();
+
+    const hasRequiredData =
+      toArray(modelOutputs.leaderWorkloadSummary).length > 0 &&
+      toArray(modelOutputs.sensitivityResults).length > 0;
+
+    if (!hasRequiredData) {
+      throw new Error("Required notebook model outputs are missing. Check data/leader_workload_summary.json and data/sensitivity_results.json.");
+    }
+
+    dashboardData = buildDashboardDataFromModel(modelOutputs);
+    window.dashboardData = dashboardData;
+
+    if (scenarioSelect) {
+      scenarioSelect.innerHTML = [
+        `<option value="__all">Compare All Scenarios</option>`,
+        ...getAllScenarioNames().map(name => `<option value="${name}">${name}</option>`)
+      ].join("");
+
+      scenarioSelect.value = getAllScenarioNames().includes("Balanced Growth")
+        ? "Balanced Growth"
+        : getAllScenarioNames()[0] || "__all";
+    }
+
+    populateLeaderSelector();
+    renderHome();
+    renderCurrentState();
+    renderScenario();
+    renderDecisionLog();
+
+    console.log("Notebook model outputs loaded into dashboard:", dashboardData);
+  } catch (error) {
+    console.error(error);
+
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      `
+      <div style="padding:16px;background:#7f1d1d;color:white;font-family:sans-serif;position:sticky;top:0;z-index:9999;">
+        Dashboard data failed to load. Check that the notebook-exported JSON files exist in the data/ folder.
+      </div>
+      `
+    );
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupEvents();
+  initializeDashboard();
 });
-
-scenarioSelect.addEventListener("change", renderScenario);
-scenarioWorkloadView.addEventListener("change", renderWorkloadSection);
-opportunitySearch.addEventListener("input", renderOpportunityTable);
-opportunityReviewFilter.addEventListener("change", renderOpportunityTable);
-drilldownLeaderSelect.addEventListener("change", renderLeaderDrilldown);
-
-document.getElementById("toggleOpportunityTable").addEventListener("click", () => {
-  expandedTables.opportunities = !expandedTables.opportunities;
-  renderOpportunityTable();
-});
-
-document.getElementById("toggleSensitivityTable").addEventListener("click", () => {
-  expandedTables.sensitivity = !expandedTables.sensitivity;
-  renderSensitivitySection();
-});
-
-document.getElementById("toggleLeaderTable").addEventListener("click", () => {
-  expandedTables.leader = !expandedTables.leader;
-  renderLeaderDrilldown();
-});
-
-document.getElementById("toggleDecisionTable").addEventListener("click", () => {
-  expandedTables.decisions = !expandedTables.decisions;
-  renderDecisionLog();
-});
-
-populateLeaderSelector();
-renderHome();
-renderCurrentState();
-renderScenario();
-renderDecisionLog();
