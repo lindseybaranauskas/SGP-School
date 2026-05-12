@@ -1280,6 +1280,7 @@ function renderDualWorkload(containerId, rows) {
     }).join("")}
   `);
 }
+
 function renderPreviewTable(tbodyId, statusId, buttonId, rows, expandedKey, renderRow) {
   const expanded = expandedTables[expandedKey];
   const visibleRows = expanded ? rows : rows.slice(0, PREVIEW_LIMIT);
@@ -1544,13 +1545,14 @@ function scenarioCard(name) {
     </div>
   `;
 }
+
 function currentStateScenarioCard() {
   const cs = dashboardData.currentState;
 
   return `
     <div class="scenario-card current-state-card">
       <h3>Current State</h3>
-      <div class="strategy">Baseline network</div>
+      <div class="strategy">Baseline network before optimization</div>
       <div class="score-grid">
         <div class="score-item"><span>Total VPs</span><strong>${cs.totalLeaders}</strong></div>
         <div class="score-item"><span>Facilities</span><strong>${cs.existingFacilities}</strong></div>
@@ -1560,6 +1562,7 @@ function currentStateScenarioCard() {
     </div>
   `;
 }
+
 // ============================================================
 // Opportunities
 // ============================================================
@@ -1637,7 +1640,6 @@ function renderOpportunityTable() {
       <tr>
         <td>${row.id}</td>
         <td>${row.leader}</td>
-        <td>${row.region}</td>
         <td>${row.serviceLine || "--"}</td>
         <td>${row.facilityType}</td>
         <td>${row.complexity}</td>
@@ -1816,12 +1818,13 @@ function renderAllLeadersSummary() {
     ]);
 
     setHtml(
-  "leaderScenarioComparison",
-  [
-    currentStateScenarioCard(),
-    ...getAllScenarioNames().map(name => scenarioCard(name))
-  ].join("")
-);
+      "leaderScenarioComparison",
+      [
+        currentStateScenarioCard(),
+        ...names.map(name => scenarioCard(name))
+      ].join("")
+    );
+
     return;
   }
 
@@ -1846,7 +1849,13 @@ function renderAllLeadersSummary() {
     { label: "Largest Decrease", value: largestDecrease?.name || "--", note: largestDecrease ? `${largestDecrease.change}` : "" }
   ]);
 
-  setHtml("leaderScenarioComparison", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
+  setHtml(
+    "leaderScenarioComparison",
+    [
+      currentStateScenarioCard(),
+      scenarioCard(getSingleScenarioName())
+    ].join("")
+  );
 }
 
 function renderSingleLeader(leaderName) {
