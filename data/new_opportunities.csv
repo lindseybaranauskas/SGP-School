@@ -1,0 +1,25 @@
+Scenario,Facility ID,Assigned VP,Current VP,Record Type,Service Line,Latitude,Longitude,Facility Complexity Score,Assignment Cost,Is Reassignment
+Balanced Growth,3850,VP0020,,opportunity,EVS,31.1138,-97.8012,,0.015339128363728275,False
+Balanced Growth,552431,VP0025,,opportunity,EVS,28.2956,-82.4898,,0.0034405603001024716,False
+Balanced Growth,894,VP0025,,opportunity,EVS,28.3554,-82.1933,,0.001242371203110049,False
+Balanced Growth,928,VP0025,,opportunity,EVS,29.1957,-81.0489,,0.010890211112426962,False
+Balanced Growth,929,VP0025,,opportunity,EVS,29.0295,-81.3033,,0.00833366004387858,False
+Balanced Growth,5719,VP0005,,opportunity,EVS,44.6263,-91.967,,0.008204787517784065,False
+Balanced Growth,1643,VP0023,,opportunity,EVS,37.1093,-87.8722,,0.00520516983436415,False
+Balanced Growth,2892,VP0017,,opportunity,EVS,44.6699,-74.9863,,0.049833693863648866,False
+Balanced Growth,4296,VP0037,,opportunity,EVS,37.4729,-80.0829,,0.015697559667392415,False
+Balanced Growth,2457,VP0024,,opportunity,EVS,47.0665,-109.4357,,0.07867954112601427,False
+Balanced Growth,4095,VP0057,,opportunity,EVS,30.209,-95.4556,,0.0006290116694806867,False
+Balanced Growth,925194,VP0051,,opportunity,EVS,30.3952,-89.0437,,0.0012221839568227037,False
+Balanced Growth,5814,VP0009,,opportunity,EVS,36.0481,-94.158,,0.026701883134972827,False
+Balanced Growth,585418,VP0025,,opportunity,EVS,27.1475,-80.2206,,0.01967701599676191,False
+Balanced Growth,1662,VP0040,,opportunity,EVS,37.6661,-82.7749,,0.021400599195098974,False
+Balanced Growth,5151,VP0006,,opportunity,CNS,39.5539,-104.9066,,0.053156126369708234,False
+Balanced Growth,1014,VP0053,,opportunity,CNS,32.5984,-83.635,,0.01820468959651533,False
+Balanced Growth,1076,VP0026,,opportunity,CNS,21.3826,-157.9392,,0.395818267253896,False
+Balanced Growth,4231,VP0026,,opportunity,CNS,40.6804,-111.4977,,0.05470636514757851,False
+Balanced Growth,1295,VP0054,,opportunity,CNS,40.7541,-86.3659,,0.009059178523302796,False
+Balanced Growth,4074,VP0060,,opportunity,CNS,31.679,-96.482,,0.03704695274773824,False
+Balanced Growth,2558,VP0054,,opportunity,CNS,40.1096,-96.1516,,0.07039018972066483,False
+Balanced Growth,6373,VP0054,,opportunity,CNS,38.1849,-99.0947,,0.0934944789720132,False
+Balanced Growth,5728,VP0054,,opportunity,CNS,38.5133,-90.4774,,0.03277667324416104,False

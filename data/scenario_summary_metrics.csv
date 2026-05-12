@@ -1,0 +1,5 @@
+Scenario,scenario_name,Strategy Type,Leader Count,Current Facility Count,New Opportunity Count,Total Leaders,Total Facilities,Total New Opportunities,Base Objective Score,Optimized Objective Score,Base Capacity Violations,Optimized Capacity Violations,Base Over Capacity Count,Base Near Capacity Count,Optimized Over Capacity Count,Optimized Near Capacity Count,Capacity Watch Count,Reassignment Count,Percent Improvement Vs Base
+Balanced Growth,Balanced Growth,Balanced Growth,55,570,24,55,570,24,52.40689983902181,136.04763793172245,31,38,31,2,38,7,45,13,-159.59871381367677
+Geographic Efficiency,Geographic Efficiency,Geographic Efficiency,55,570,24,55,570,24,52.40689983902181,134.75460089339603,31,39,31,2,39,8,47,16,-157.13141076331843
+Service Line Fit,Service Line Fit,Service Line Fit,55,570,24,55,570,24,52.40689983902181,135.0658866042691,31,35,31,2,35,8,43,13,-157.72538925055818
+Minimize Disruption,Minimize Disruption,Minimize Disruption,55,570,24,55,570,24,52.40689983902181,135.88621346675075,31,34,31,2,34,5,39,3,-159.29069241674705
