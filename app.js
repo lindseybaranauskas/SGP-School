@@ -1240,31 +1240,46 @@ function renderCompactWorkload(containerId, rows, mode = "current") {
 }
 
 function renderDualWorkload(containerId, rows) {
-  setHtml(containerId, rows.map(row => {
-    const baselinePct = Number(row.baselineUtilPct || 0);
-    const optimizedPct = Number(row.optimizedUtilPct || 0);
+  setHtml(containerId, `
+    <div class="workload-legend">
+      <span><i class="legend-dot baseline-dot"></i>Current / Baseline</span>
+      <span><i class="legend-dot optimized-dot"></i>Optimized / Selected Scenario</span>
+    </div>
 
-    const baselineClass = baselinePct > 100 ? "red" : baselinePct >= 95 ? "yellow" : "green";
-    const optimizedClass = optimizedPct > 100 ? "red" : optimizedPct >= 95 ? "yellow" : "green";
+    ${rows.map(row => {
+      const baselinePct = Number(row.baselineUtilPct || 0);
+      const optimizedPct = Number(row.optimizedUtilPct || 0);
 
-    return `
-      <div class="compact-row">
-        <strong>${row.name}</strong>
-        <div>
-          <div class="bar-track" title="Current / Baseline">
-            <div class="bar-fill ${baselineClass}" style="width:${Math.min(baselinePct, 120)}%"></div>
+      const baselineClass = baselinePct > 100 ? "red" : baselinePct >= 95 ? "yellow" : "green";
+      const optimizedClass = optimizedPct > 100 ? "red" : optimizedPct >= 95 ? "yellow" : "green";
+
+      return `
+        <div class="compact-row">
+          <strong>${row.name}</strong>
+          <div>
+            <div class="bar-label-row">
+              <span>Current</span>
+              <span>${Math.round(baselinePct)}%</span>
+            </div>
+            <div class="bar-track" title="Current / Baseline">
+              <div class="bar-fill ${baselineClass}" style="width:${Math.min(baselinePct, 120)}%"></div>
+            </div>
+
+            <div class="bar-label-row">
+              <span>Optimized</span>
+              <span>${Math.round(optimizedPct)}%</span>
+            </div>
+            <div class="bar-track" title="Optimized / Selected Scenario">
+              <div class="bar-fill ${optimizedClass}" style="width:${Math.min(optimizedPct, 120)}%"></div>
+            </div>
           </div>
-          <div class="bar-track" title="Optimized / Selected Scenario" style="margin-top:4px;">
-            <div class="bar-fill ${optimizedClass}" style="width:${Math.min(optimizedPct, 120)}%"></div>
-          </div>
+          <span>${Math.round(baselinePct)}% → ${Math.round(optimizedPct)}%</span>
+          <span class="badge ${getBadgeClass(row.optimizedStatus)}">${row.optimizedStatus}</span>
         </div>
-        <span>${Math.round(baselinePct)}% → ${Math.round(optimizedPct)}%</span>
-        <span class="badge ${getBadgeClass(row.optimizedStatus)}">${row.optimizedStatus}</span>
-      </div>
-    `;
-  }).join(""));
+      `;
+    }).join("")}
+  `);
 }
-
 function renderPreviewTable(tbodyId, statusId, buttonId, rows, expandedKey, renderRow) {
   const expanded = expandedTables[expandedKey];
   const visibleRows = expanded ? rows : rows.slice(0, PREVIEW_LIMIT);
