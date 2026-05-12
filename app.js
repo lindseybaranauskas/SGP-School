@@ -14,7 +14,6 @@ const MODEL_DATA_PATHS = {
   sensitivityResults: "data/sensitivity_results.json",
   networkNodesEdges: "data/network_nodes_edges.json",
   optimizedAssignments: "data/optimized_assignments.json",
-  progressReports: "data/progress_reports.json",
   scenarioLeaderWorkloads: "data/scenario_leader_workloads.json",
   scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json",
   scenarioLeaderDrilldown: "data/scenario_leader_drilldown.json",
@@ -31,8 +30,7 @@ let activeNetworkFilter = "all";
 let expandedTables = {
   opportunities: false,
   sensitivity: false,
-  leader: false,
-  decisions: false
+  leader: false
 };
 
 // ============================================================
@@ -209,7 +207,8 @@ function getBadgeClass(value) {
     text.includes("added") ||
     text.includes("complete") ||
     text.includes("contained") ||
-    text.includes("clear")
+    text.includes("clear") ||
+    text.includes("assigned")
   ) {
     return "good";
   }
@@ -299,7 +298,6 @@ async function loadModelOutputs() {
     sensitivityResults,
     networkNodesEdges,
     optimizedAssignments,
-    progressReports,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
     scenarioLeaderDrilldown,
@@ -314,7 +312,6 @@ async function loadModelOutputs() {
     fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
     fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
     fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
-    fetchModelJson(MODEL_DATA_PATHS.progressReports, []),
     fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderDrilldown, {}),
@@ -331,7 +328,6 @@ async function loadModelOutputs() {
     sensitivityResults,
     networkNodesEdges,
     optimizedAssignments,
-    progressReports,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
     scenarioLeaderDrilldown,
@@ -386,14 +382,6 @@ function getScenarioObject(dataset, scenarioName, fallback = null) {
   }
 
   return fallback;
-}
-
-function getScenarioSummaryRow(scenarioName) {
-  const rows = dashboardData.scenarioSummaryRows || [];
-
-  return rows.find(row => {
-    return normalizeKey(getScenarioNameFromRow(row)) === normalizeKey(scenarioName);
-  }) || null;
 }
 
 function getAllScenarioNames() {
@@ -687,13 +675,13 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
       (baseline / capacity) * 100
     );
 
-    const optimizedUtilPct = pickNumber(
+    const optimizedUtilRaw = pickNumber(
       row,
       ["Capacity Utilization", "Optimized Utilization %", "optimized_utilization_pct"],
       optimized / capacity
     );
 
-    const optimizedUtilPctFinal = optimizedUtilPct <= 2 ? optimizedUtilPct * 100 : optimizedUtilPct;
+    const optimizedUtilPct = optimizedUtilRaw <= 2 ? optimizedUtilRaw * 100 : optimizedUtilRaw;
 
     const region = pickValue(
       row,
@@ -717,13 +705,13 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
       optimized,
       capacity,
       baselineUtilPct,
-      optimizedUtilPct: optimizedUtilPctFinal,
+      optimizedUtilPct,
       region,
       serviceLines,
       serviceLine: serviceLines[0] || "--",
       facilityCount,
       capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatusFromPct(baselineUtilPct)),
-      optimizedStatus: getStatusFromPct(optimizedUtilPctFinal),
+      optimizedStatus: getStatusFromPct(optimizedUtilPct),
       change: Number((optimized - baseline).toFixed(2))
     };
   });
@@ -883,35 +871,86 @@ function buildServiceLineScope(assignments, leaders) {
   });
 }
 
-function buildRegionalScope(leaders) {
-  const grouped = leaders.reduce((acc, leader) => {
-    const region = leader.region || "--";
-    if (!acc[region]) acc[region] = [];
-    acc[region].push(leader);
+function inferRegionFromAssignment(row) {
+  const explicitRegion = pickValue(
+    row,
+    ["Region", "region", "Market", "market", "Division", "division", "Territory", "territory"],
+    null
+  );
+
+  if (explicitRegion) return explicitRegion;
+
+  const lat = Number(pickValue(row, ["Latitude", "latitude", "lat"], null));
+  const lng = Number(pickValue(row, ["Longitude", "longitude", "lng", "lon"], null));
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return "Unassigned Region";
+  }
+
+  if (lng <= -115) return "West";
+  if (lng <= -100) return "Southwest";
+  if (lng <= -88 && lat >= 37) return "Midwest";
+  if (lng <= -88 && lat < 37) return "Southwest";
+  if (lng <= -75 && lat >= 38) return "Northeast";
+  if (lng <= -75 && lat < 38) return "Southeast";
+  if (lat >= 38) return "Northeast";
+
+  return "Southeast";
+}
+
+function buildRegionalScopeFromAssignments(assignments, leaders) {
+  const currentAssignments = assignments.filter(row => {
+    const recordType = String(pickValue(row, ["Record Type", "record_type"], "")).toLowerCase();
+    return recordType === "current" || recordType === "";
+  });
+
+  const grouped = currentAssignments.reduce((acc, row) => {
+    const region = inferRegionFromAssignment(row);
+
+    if (!acc[region]) {
+      acc[region] = {
+        assignments: [],
+        vpSet: new Set()
+      };
+    }
+
+    acc[region].assignments.push(row);
+
+    const assignedVp = pickValue(row, ["Assigned VP", "VP ID", "Leader", "leader_name"], null);
+    if (assignedVp) acc[region].vpSet.add(assignedVp);
+
     return acc;
   }, {});
 
-  return Object.entries(grouped).map(([region, rows]) => {
-    const overCapacity = rows.filter(row => Number(row.baselineUtilPct || 0) > 100).length;
+  return Object.entries(grouped)
+    .map(([region, group]) => {
+      const regionalLeaders = leaders.filter(leader => {
+        return group.vpSet.has(leader.name);
+      });
 
-    const avgUtilization = rows.length
-      ? rows.reduce((sum, row) => sum + Number(row.baselineUtilPct || 0), 0) / rows.length
-      : 0;
+      const overCapacity = regionalLeaders.filter(leader => {
+        return Number(leader.baselineUtilPct || 0) > 100;
+      }).length;
 
-    const highestUtilization = rows.length
-      ? Math.max(...rows.map(row => Number(row.baselineUtilPct || 0)))
-      : 0;
+      const avgUtilization = regionalLeaders.length
+        ? regionalLeaders.reduce((sum, leader) => sum + Number(leader.baselineUtilPct || 0), 0) / regionalLeaders.length
+        : 0;
 
-    return {
-      region,
-      facilities: rows.reduce((sum, row) => sum + Number(row.facilityCount || 0), 0),
-      activeVPs: rows.length,
-      avgUtilization: `${Math.round(avgUtilization)}%`,
-      highestUtilization: `${Math.round(highestUtilization)}%`,
-      leadersOverCapacity: overCapacity,
-      risk: getRiskLabel(overCapacity)
-    };
-  });
+      const highestUtilization = regionalLeaders.length
+        ? Math.max(...regionalLeaders.map(leader => Number(leader.baselineUtilPct || 0)))
+        : 0;
+
+      return {
+        region,
+        facilities: group.assignments.length,
+        activeVPs: group.vpSet.size,
+        avgUtilization: `${Math.round(avgUtilization)}%`,
+        highestUtilization: `${Math.round(highestUtilization)}%`,
+        leadersOverCapacity: overCapacity,
+        risk: getRiskLabel(overCapacity)
+      };
+    })
+    .sort((a, b) => b.facilities - a.facilities);
 }
 
 function buildLeaderDetailsFromRows(leaderDrilldownRows, opportunities) {
@@ -934,7 +973,7 @@ function buildLeaderDetailsFromRows(leaderDrilldownRows, opportunities) {
         type: "Existing Facility",
         serviceLine: normalizeServiceLine(pickValue(item, ["Service Line", "service_line"], "")),
         facilityType: "Existing Facility",
-        region: pickValue(item, ["Region", "region"], "--"),
+        region: pickValue(item, ["Region", "region"], inferRegionFromAssignment(item)),
         workload: Number(pickValue(item, ["Assignment Cost", "workload"], 0)).toFixed(2),
         status: "Retained"
       })),
@@ -943,7 +982,7 @@ function buildLeaderDetailsFromRows(leaderDrilldownRows, opportunities) {
         type: "New Opportunity",
         serviceLine: normalizeServiceLine(pickValue(item, ["Service Line", "service_line"], "")),
         facilityType: "New Opportunity",
-        region: pickValue(item, ["Region", "region"], "--"),
+        region: pickValue(item, ["Region", "region"], inferRegionFromAssignment(item)),
         workload: Number(pickValue(item, ["Assignment Cost", "workload"], 0)).toFixed(2),
         status: "Added"
       }))
@@ -1065,34 +1104,6 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
   return scenarios;
 }
 
-function buildDecisionLog(progressReports) {
-  const reports = toArray(progressReports);
-
-  if (!reports.length) {
-    return [
-      {
-        date: "Current",
-        decision: "Notebook-generated dashboard data loaded",
-        reason: "The dashboard reads JSON outputs exported from the Python notebook.",
-        status: "Complete"
-      },
-      {
-        date: "Current",
-        decision: "Scenario-aware data files added",
-        reason: "Scenario dropdowns now read scenario-specific leader, opportunity, drill-down, and network files.",
-        status: "Complete"
-      }
-    ];
-  }
-
-  return reports.map((item, index) => ({
-    date: item.date || `Report ${index + 1}`,
-    decision: item.title || item.decision || "Progress update",
-    reason: item.body || item.reason || "",
-    status: item.status || "Complete"
-  }));
-}
-
 function buildDashboardDataFromModel(modelOutputs) {
   const summaryMetrics = modelOutputs.summaryMetrics || {};
 
@@ -1139,7 +1150,7 @@ function buildDashboardDataFromModel(modelOutputs) {
     highestUtilization: `${Math.round(highestUtilization)}%`,
     currentRiskAreas: summaryMetrics.base_capacity_violations ?? baseOverCapacity,
     serviceLineScope: buildServiceLineScope(optimizedAssignments, leaders),
-    regionalScope: buildRegionalScope(leaders),
+    regionalScope: buildRegionalScopeFromAssignments(optimizedAssignments, leaders),
     observations: [
       {
         title: "Capacity pressure is uneven",
@@ -1151,7 +1162,7 @@ function buildDashboardDataFromModel(modelOutputs) {
       },
       {
         title: "Regional coverage is model-driven",
-        body: "Region values are pulled from notebook-exported leader and assignment data."
+        body: "Region values are inferred from notebook-exported assignment and facility data."
       },
       {
         title: "Reoptimization matters",
@@ -1166,7 +1177,7 @@ function buildDashboardDataFromModel(modelOutputs) {
     opportunities,
     scenarioSummaryRows,
     leaderDetails: buildLeaderDetailsFromRows(leaderDrilldown, opportunities),
-    decisionLog: buildDecisionLog(modelOutputs.progressReports),
+    decisionLog: [],
     summaryMetrics,
     rawModelOutputs: modelOutputs
   };
@@ -1385,7 +1396,6 @@ function renderDashboard() {
   renderHome();
   renderCurrentState();
   renderScenario();
-  renderDecisionLog();
 }
 
 function renderScenario() {
@@ -1416,25 +1426,73 @@ function renderSingleScenarioMode() {
   getEl("singleScenarioSummary")?.classList.remove("hidden");
   getEl("allScenarioSummary")?.classList.add("hidden");
 
-  const comparisons = [
-    { label: "VPs Over Capacity", baseline: cs.leadersOverCapacity, optimized: optimized.leadersOverCapacity },
-    { label: "Avg Utilization", baseline: cs.averageUtilization, optimized: optimized.averageUtilization },
-    { label: "Highest Utilization", baseline: cs.highestUtilization, optimized: optimized.highestUtilization },
-    { label: "New Opportunities", baseline: 0, optimized: optimized.newOpportunities },
-    { label: "Reassignments", baseline: 0, optimized: optimized.reassignments },
-    { label: "Constraint Violations", baseline: cs.currentRiskAreas, optimized: optimized.constraintViolations }
-  ];
-
-  setHtml("scenarioComparisonCards", comparisons.map(item => `
+  setHtml("scenarioComparisonCards", `
     <div class="compare-card">
-      <span>${item.label}</span>
-      <div class="compare-values">
-        <div class="compare-value"><small>Current</small><strong>${item.baseline}</strong></div>
-        <div class="compare-arrow">→</div>
-        <div class="compare-value"><small>Optimized</small><strong>${item.optimized}</strong></div>
+      <span>Current State</span>
+      <div class="score-grid">
+        <div class="score-item">
+          <span>Total VPs</span>
+          <strong>${cs.totalLeaders}</strong>
+        </div>
+        <div class="score-item">
+          <span>Facilities</span>
+          <strong>${cs.existingFacilities}</strong>
+        </div>
+        <div class="score-item">
+          <span>Over Capacity</span>
+          <strong>${cs.leadersOverCapacity}</strong>
+        </div>
+        <div class="score-item">
+          <span>Risk Areas</span>
+          <strong>${cs.currentRiskAreas}</strong>
+        </div>
       </div>
     </div>
-  `).join(""));
+
+    <div class="compare-card">
+      <span>${scenarioName}</span>
+      <div class="score-grid">
+        <div class="score-item">
+          <span>New Opportunities</span>
+          <strong>${optimized.newOpportunities}</strong>
+        </div>
+        <div class="score-item">
+          <span>Reassignments</span>
+          <strong>${optimized.reassignments}</strong>
+        </div>
+        <div class="score-item">
+          <span>Over Capacity</span>
+          <strong>${optimized.leadersOverCapacity}</strong>
+        </div>
+        <div class="score-item">
+          <span>Objective Score</span>
+          <strong>${optimized.objectiveScore}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-card">
+      <span>Net Change</span>
+      <div class="score-grid">
+        <div class="score-item">
+          <span>Capacity Risk</span>
+          <strong>${cs.leadersOverCapacity} → ${optimized.leadersOverCapacity}</strong>
+        </div>
+        <div class="score-item">
+          <span>Violations</span>
+          <strong>${cs.currentRiskAreas} → ${optimized.constraintViolations}</strong>
+        </div>
+        <div class="score-item">
+          <span>Avg Util.</span>
+          <strong>${cs.averageUtilization} → ${optimized.averageUtilization}</strong>
+        </div>
+        <div class="score-item">
+          <span>Highest Util.</span>
+          <strong>${cs.highestUtilization} → ${optimized.highestUtilization}</strong>
+        </div>
+      </div>
+    </div>
+  `);
 
   setHtml("baselineNarrative", scenario.baselineNarrative.map(item => `<li>${item}</li>`).join(""));
   setHtml("optimizedNarrative", scenario.optimizedNarrative.map(item => `<li>${item}</li>`).join(""));
@@ -1498,23 +1556,19 @@ function renderOpportunitySection() {
   const total = rows.length;
   const evs = rows.filter(row => row.serviceLine === "EVS").length;
   const cns = rows.filter(row => row.serviceLine === "CNS").length;
-  const highComplexity = rows.filter(row => row.complexity === "High").length;
-  const reviewRequired = rows.filter(row => row.review).length;
-  const avgWorkload = average(rows, "workload").toFixed(1);
-  const regions = Object.keys(countBy(rows, "region")).length;
+  const assigned = rows.filter(row => row.leader && row.leader !== "--").length;
+  const needsReview = rows.filter(row => row.review || !row.leader || row.leader === "--").length;
 
-  renderKpis("opportunityKpis", [
-    { label: "Total Opportunities", value: total },
-    { label: "EVS", value: evs },
-    { label: "CNS", value: cns },
-    { label: "High Complexity", value: highComplexity },
-    { label: "Avg Workload", value: avgWorkload },
-    { label: "Review Required", value: reviewRequired, note: `${regions} regions` }
+  renderPills("opportunitySummary", [
+    { label: "Total", value: total },
+    { label: "Assigned", value: assigned },
+    { label: "Needs Review", value: needsReview }
   ]);
 
-  renderPills("opportunityServiceMix", Object.entries(countBy(rows, "serviceLine")).map(([label, value]) => ({ label, value })));
-  renderPills("opportunityRegionMix", Object.entries(countBy(rows, "region")).map(([label, value]) => ({ label, value })));
-  renderPills("opportunityComplexityMix", Object.entries(countBy(rows, "complexity")).map(([label, value]) => ({ label, value })));
+  renderPills("opportunityServiceMix", [
+    { label: "EVS", value: evs },
+    { label: "CNS", value: cns }
+  ]);
 
   renderOpportunityTable();
 }
@@ -2005,28 +2059,6 @@ function renderNetwork() {
 }
 
 // ============================================================
-// Decision log
-// ============================================================
-
-function renderDecisionLog() {
-  renderPreviewTable(
-    "decisionLogTable",
-    "decisionTableStatus",
-    "toggleDecisionTable",
-    dashboardData.decisionLog,
-    "decisions",
-    row => `
-      <tr>
-        <td>${row.date}</td>
-        <td>${row.decision}</td>
-        <td>${row.reason}</td>
-        <td><span class="badge ${getBadgeClass(row.status)}">${row.status}</span></td>
-      </tr>
-    `
-  );
-}
-
-// ============================================================
 // Event setup
 // ============================================================
 
@@ -2074,11 +2106,6 @@ function setupEvents() {
   getEl("toggleLeaderTable")?.addEventListener("click", () => {
     expandedTables.leader = !expandedTables.leader;
     renderLeaderDrilldown();
-  });
-
-  getEl("toggleDecisionTable")?.addEventListener("click", () => {
-    expandedTables.decisions = !expandedTables.decisions;
-    renderDecisionLog();
   });
 }
 
