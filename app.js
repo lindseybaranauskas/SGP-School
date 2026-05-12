@@ -1,11 +1,13 @@
 // ============================================================
 // SGP VP Assignment Dashboard
-// Original UI + notebook-generated JSON data
+// Notebook-generated JSON data
+// Scenario-aware dynamic rendering
 // No embedded mock data
 // ============================================================
 
 const MODEL_DATA_PATHS = {
   summaryMetrics: "data/summary_metrics.json",
+  scenarioSummaryMetrics: "data/scenario_summary_metrics.json",
   leaderWorkloadSummary: "data/leader_workload_summary.json",
   leaderDrilldown: "data/leader_drilldown.json",
   newOpportunities: "data/new_opportunities.json",
@@ -14,7 +16,10 @@ const MODEL_DATA_PATHS = {
   optimizedAssignments: "data/optimized_assignments.json",
   progressReports: "data/progress_reports.json",
   scenarioLeaderWorkloads: "data/scenario_leader_workloads.json",
-  scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json"
+  scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json",
+  scenarioLeaderDrilldown: "data/scenario_leader_drilldown.json",
+  scenarioNetworkNodesEdges: "data/scenario_network_nodes_edges.json",
+  scenarioOptimizedAssignments: "data/scenario_optimized_assignments.json"
 };
 
 const PREVIEW_LIMIT = 5;
@@ -59,7 +64,7 @@ function setHtml(id, html) {
 
 function setText(id, text) {
   const el = getEl(id);
-  if (el) el.textContent = text;
+  if (el) el.textContent = text ?? "";
 }
 
 function pickValue(obj, keys, fallback = undefined) {
@@ -92,6 +97,18 @@ function toArray(value) {
   }
 
   return [value];
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
 }
 
 function normalizeServiceLine(value) {
@@ -179,8 +196,8 @@ function getBadgeClass(value) {
     text.includes("near") ||
     text.includes("medium") ||
     text.includes("moderate") ||
-    text.includes("in progress") ||
-    text.includes("watch")
+    text.includes("watch") ||
+    text.includes("in progress")
   ) {
     return "warning";
   }
@@ -235,6 +252,23 @@ function getComplexityLabel(value) {
   return "Medium";
 }
 
+function getScenarioNameFromRow(row) {
+  return pickValue(
+    row,
+    [
+      "Scenario",
+      "scenario",
+      "scenario_name",
+      "scenarioName",
+      "Scenario Name",
+      "scenario_label",
+      "scenarioLabel",
+      "name"
+    ],
+    ""
+  );
+}
+
 // ============================================================
 // Data loading
 // ============================================================
@@ -256,56 +290,185 @@ async function fetchModelJson(path, fallback) {
 }
 
 async function loadModelOutputs() {
+  const [
+    summaryMetrics,
+    scenarioSummaryMetrics,
+    leaderWorkloadSummary,
+    leaderDrilldown,
+    newOpportunities,
+    sensitivityResults,
+    networkNodesEdges,
+    optimizedAssignments,
+    progressReports,
+    scenarioLeaderWorkloads,
+    scenarioOpportunityAssignments,
+    scenarioLeaderDrilldown,
+    scenarioNetworkNodesEdges,
+    scenarioOptimizedAssignments
+  ] = await Promise.all([
+    fetchModelJson(MODEL_DATA_PATHS.summaryMetrics, {}),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioSummaryMetrics, []),
+    fetchModelJson(MODEL_DATA_PATHS.leaderWorkloadSummary, []),
+    fetchModelJson(MODEL_DATA_PATHS.leaderDrilldown, []),
+    fetchModelJson(MODEL_DATA_PATHS.newOpportunities, []),
+    fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
+    fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
+    fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
+    fetchModelJson(MODEL_DATA_PATHS.progressReports, []),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, {}),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, {}),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderDrilldown, {}),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioNetworkNodesEdges, {}),
+    fetchModelJson(MODEL_DATA_PATHS.scenarioOptimizedAssignments, {})
+  ]);
+
   return {
-    summaryMetrics: await fetchModelJson(MODEL_DATA_PATHS.summaryMetrics, {}),
-    leaderWorkloadSummary: await fetchModelJson(MODEL_DATA_PATHS.leaderWorkloadSummary, []),
-    leaderDrilldown: await fetchModelJson(MODEL_DATA_PATHS.leaderDrilldown, []),
-    newOpportunities: await fetchModelJson(MODEL_DATA_PATHS.newOpportunities, []),
-    sensitivityResults: await fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
-    networkNodesEdges: await fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
-    optimizedAssignments: await fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
-    progressReports: await fetchModelJson(MODEL_DATA_PATHS.progressReports, []),
-    scenarioLeaderWorkloads: await fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, []),
-    scenarioOpportunityAssignments: await fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, [])
+    summaryMetrics,
+    scenarioSummaryMetrics,
+    leaderWorkloadSummary,
+    leaderDrilldown,
+    newOpportunities,
+    sensitivityResults,
+    networkNodesEdges,
+    optimizedAssignments,
+    progressReports,
+    scenarioLeaderWorkloads,
+    scenarioOpportunityAssignments,
+    scenarioLeaderDrilldown,
+    scenarioNetworkNodesEdges,
+    scenarioOptimizedAssignments
   };
 }
 
 // ============================================================
-// Scenario helpers
+// Scenario-aware data access
 // ============================================================
 
-function getScenarioName(row) {
-  return pickValue(
-    row,
-    ["scenario_name", "scenarioName", "scenario_label", "scenarioLabel", "name"],
-    "Unnamed Scenario"
-  );
+function getScenarioRows(dataset, scenarioName) {
+  if (!dataset) return [];
+
+  if (Array.isArray(dataset)) {
+    const hasScenarioColumn = dataset.some(row => getScenarioNameFromRow(row));
+
+    if (!hasScenarioColumn) return dataset;
+
+    return dataset.filter(row => {
+      return normalizeKey(getScenarioNameFromRow(row)) === normalizeKey(scenarioName);
+    });
+  }
+
+  if (isPlainObject(dataset)) {
+    if (Array.isArray(dataset[scenarioName])) return dataset[scenarioName];
+
+    const matchedKey = Object.keys(dataset).find(key => {
+      return normalizeKey(key) === normalizeKey(scenarioName);
+    });
+
+    if (matchedKey && Array.isArray(dataset[matchedKey])) {
+      return dataset[matchedKey];
+    }
+  }
+
+  return [];
 }
 
-function getRowScenarioName(row) {
-  return pickValue(
-    row,
-    ["scenario_name", "scenarioName", "Scenario", "scenario"],
-    ""
-  );
+function getScenarioObject(dataset, scenarioName, fallback = null) {
+  if (!dataset) return fallback;
+
+  if (isPlainObject(dataset)) {
+    if (dataset[scenarioName]) return dataset[scenarioName];
+
+    const matchedKey = Object.keys(dataset).find(key => {
+      return normalizeKey(key) === normalizeKey(scenarioName);
+    });
+
+    if (matchedKey) return dataset[matchedKey];
+  }
+
+  return fallback;
 }
 
-function filterRowsForScenario(rows, scenarioName) {
-  const arr = toArray(rows);
+function getScenarioSummaryRow(scenarioName) {
+  const rows = dashboardData.scenarioSummaryRows || [];
 
-  if (!arr.length) return [];
-
-  const hasScenarioName = arr.some(row => getRowScenarioName(row));
-
-  if (!hasScenarioName) return arr;
-
-  return arr.filter(row => getRowScenarioName(row) === scenarioName);
+  return rows.find(row => {
+    return normalizeKey(getScenarioNameFromRow(row)) === normalizeKey(scenarioName);
+  }) || null;
 }
+
+function getAllScenarioNames() {
+  if (!dashboardData) return [];
+
+  const fromSummary = toArray(dashboardData.summaryMetrics.available_scenarios);
+  const fromScenarioSummary = dashboardData.scenarioSummaryRows
+    .map(row => getScenarioNameFromRow(row))
+    .filter(Boolean);
+  const fromLeaderWorkloads = isPlainObject(dashboardData.rawModelOutputs.scenarioLeaderWorkloads)
+    ? Object.keys(dashboardData.rawModelOutputs.scenarioLeaderWorkloads)
+    : [];
+  const fromOpportunityAssignments = isPlainObject(dashboardData.rawModelOutputs.scenarioOpportunityAssignments)
+    ? Object.keys(dashboardData.rawModelOutputs.scenarioOpportunityAssignments)
+    : [];
+  const fromDrilldown = isPlainObject(dashboardData.rawModelOutputs.scenarioLeaderDrilldown)
+    ? Object.keys(dashboardData.rawModelOutputs.scenarioLeaderDrilldown)
+    : [];
+  const fromNetwork = isPlainObject(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
+    ? Object.keys(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
+    : [];
+  const fromScenariosObject = dashboardData.scenarios ? Object.keys(dashboardData.scenarios) : [];
+
+  const names = [
+    ...fromSummary,
+    ...fromScenarioSummary,
+    ...fromLeaderWorkloads,
+    ...fromOpportunityAssignments,
+    ...fromDrilldown,
+    ...fromNetwork,
+    ...fromScenariosObject
+  ].filter(Boolean);
+
+  return [...new Set(names)];
+}
+
+function getSelectedScenarioName() {
+  return scenarioSelect?.value || getAllScenarioNames()[0] || "";
+}
+
+function isCompareAllMode() {
+  return getSelectedScenarioName() === "__all";
+}
+
+function getSingleScenarioName() {
+  if (isCompareAllMode()) {
+    return getAllScenarioNames().includes("Balanced Growth")
+      ? "Balanced Growth"
+      : getAllScenarioNames()[0];
+  }
+
+  return getSelectedScenarioName();
+}
+
+function getSelectedScenario() {
+  return dashboardData.scenarios[getSingleScenarioName()] || Object.values(dashboardData.scenarios)[0];
+}
+
+// ============================================================
+// Scenario summary helpers
+// ============================================================
 
 function getScenarioCandidateScore(row) {
   return pickNumber(
     row,
-    ["candidate_score", "candidateScore", "baseline_score", "baselineScore"],
+    [
+      "Candidate Objective Score",
+      "candidate_objective_score",
+      "candidate_score",
+      "candidateScore",
+      "Base Objective Score",
+      "base_objective_score",
+      "baseline_score",
+      "baselineScore"
+    ],
     0
   );
 }
@@ -313,7 +476,14 @@ function getScenarioCandidateScore(row) {
 function getScenarioOptimizedScore(row) {
   return pickNumber(
     row,
-    ["optimized_score", "optimizedScore", "objectiveScore", "score"],
+    [
+      "Optimized Objective Score",
+      "optimized_objective_score",
+      "optimized_score",
+      "optimizedScore",
+      "objectiveScore",
+      "score"
+    ],
     0
   );
 }
@@ -321,12 +491,37 @@ function getScenarioOptimizedScore(row) {
 function getScenarioViolations(row) {
   return pickNumber(
     row,
-    ["violations", "capacity_violations", "capacityViolations", "constraintViolations"],
+    [
+      "Optimized Capacity Violations",
+      "optimized_capacity_violations",
+      "Constraint Violations",
+      "constraint_violations",
+      "capacity_violations",
+      "capacityViolations",
+      "violations"
+    ],
     0
   );
 }
 
 function getScenarioImprovement(row) {
+  const explicitImprovement = pickValue(
+    row,
+    [
+      "Percent Improvement Vs Base",
+      "percent_improvement_vs_base",
+      "percentImprovementVsBase",
+      "Improvement",
+      "improvement"
+    ],
+    null
+  );
+
+  if (explicitImprovement !== null) {
+    const number = Number(explicitImprovement);
+    return Number.isFinite(number) ? number : 0;
+  }
+
   const candidate = getScenarioCandidateScore(row);
   const optimized = getScenarioOptimizedScore(row);
 
@@ -338,8 +533,55 @@ function getScenarioImprovement(row) {
 function getScenarioReassignmentCount(row) {
   return pickNumber(
     row,
-    ["reassignment_count", "reassignments", "Reassignments", "candidate_to_optimized_change_count"],
-    getScenarioViolations(row)
+    [
+      "Reassignment Count",
+      "reassignment_count",
+      "reassignments",
+      "Reassignments",
+      "candidate_to_optimized_change_count"
+    ],
+    0
+  );
+}
+
+function getScenarioOverCapacityCount(row) {
+  return pickNumber(
+    row,
+    [
+      "Optimized Over Capacity Count",
+      "optimized_over_capacity_count",
+      "optimizedOverCapacityCount",
+      "Over Capacity",
+      "over_capacity"
+    ],
+    0
+  );
+}
+
+function getScenarioNearCapacityCount(row) {
+  return pickNumber(
+    row,
+    [
+      "Optimized Near Capacity Count",
+      "optimized_near_capacity_count",
+      "optimizedNearCapacityCount",
+      "Near Capacity",
+      "near_capacity"
+    ],
+    0
+  );
+}
+
+function getScenarioNewOpportunityCount(row) {
+  return pickNumber(
+    row,
+    [
+      "New Opportunity Count",
+      "new_opportunity_count",
+      "Total New Opportunities",
+      "total_new_opportunities"
+    ],
+    0
   );
 }
 
@@ -427,7 +669,7 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
 
     const baseline = pickNumber(
       row,
-      ["base Workload", "Base Workload", "baseline_workload", "Baseline Workload", "Current Workload"],
+      ["Base Workload", "base Workload", "baseline_workload", "Baseline Workload", "Current Workload"],
       0
     );
 
@@ -441,15 +683,17 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
 
     const baselineUtilPct = pickNumber(
       row,
-      ["baseline_utilization_pct", "Baseline Utilization %"],
+      ["Baseline Utilization %", "baseline_utilization_pct"],
       (baseline / capacity) * 100
     );
 
     const optimizedUtilPct = pickNumber(
       row,
-      ["optimized_utilization_pct", "Optimized Utilization %"],
-      (optimized / capacity) * 100
+      ["Capacity Utilization", "Optimized Utilization %", "optimized_utilization_pct"],
+      optimized / capacity
     );
+
+    const optimizedUtilPctFinal = optimizedUtilPct <= 2 ? optimizedUtilPct * 100 : optimizedUtilPct;
 
     const region = pickValue(
       row,
@@ -463,7 +707,7 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
 
     const facilityCount = pickNumber(
       row,
-      ["base Facility Count", "Base Facility Count", "Current Facility Count", "facility_count", "Facility Count"],
+      ["Base Facility Count", "base Facility Count", "Current Facility Count", "facility_count", "Facility Count"],
       context.currentFacilities || 0
     );
 
@@ -473,13 +717,14 @@ function buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments) {
       optimized,
       capacity,
       baselineUtilPct,
-      optimizedUtilPct,
+      optimizedUtilPct: optimizedUtilPctFinal,
       region,
       serviceLines,
       serviceLine: serviceLines[0] || "--",
       facilityCount,
       capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatusFromPct(baselineUtilPct)),
-      optimizedStatus: getStatusFromPct(optimizedUtilPct)
+      optimizedStatus: getStatusFromPct(optimizedUtilPctFinal),
+      change: Number((optimized - baseline).toFixed(2))
     };
   });
 }
@@ -489,33 +734,44 @@ function normalizeScenarioLeaderRow(row) {
 
   const baseline = pickNumber(
     row,
-    ["baseline_workload", "base Workload", "Base Workload", "Baseline Workload", "Current Workload"],
+    ["Base Workload", "base Workload", "baseline_workload", "Baseline Workload", "Current Workload"],
     0
   );
 
   const optimized = pickNumber(
     row,
-    ["optimized_workload", "Optimized Workload", "Final Workload"],
+    ["Optimized Workload", "optimized_workload", "Final Workload"],
     baseline
   );
 
-  const capacity = pickNumber(row, ["capacity", "Capacity"], DEFAULT_CAPACITY);
+  const capacity = pickNumber(row, ["Capacity", "capacity"], DEFAULT_CAPACITY);
 
   const baselineUtilPct = pickNumber(
     row,
-    ["baseline_utilization_pct", "Baseline Utilization %"],
+    ["Baseline Utilization %", "baseline_utilization_pct"],
     (baseline / capacity) * 100
   );
 
-  const optimizedUtilPct = pickNumber(
+  const rawOptimizedUtil = pickNumber(
     row,
-    ["optimized_utilization_pct", "Optimized Utilization %"],
-    (optimized / capacity) * 100
+    ["Capacity Utilization", "Optimized Utilization %", "optimized_utilization_pct"],
+    optimized / capacity
   );
+
+  const optimizedUtilPct = rawOptimizedUtil <= 2 ? rawOptimizedUtil * 100 : rawOptimizedUtil;
+
+  const serviceMix = pickValue(row, ["Service Mix", "service_mix"], {});
+  const serviceLinesFromMix =
+    serviceMix && typeof serviceMix === "object" && !Array.isArray(serviceMix)
+      ? Object.keys(serviceMix)
+      : [];
 
   const serviceLines = [
     ...new Set(
-      toArray(pickValue(row, ["Service_Lines", "Service Lines", "Service Line", "service_lines"], []))
+      [
+        ...toArray(pickValue(row, ["Service_Lines", "Service Lines", "Service Line", "service_lines"], [])),
+        ...serviceLinesFromMix
+      ]
         .map(normalizeServiceLine)
         .filter(Boolean)
     )
@@ -531,9 +787,9 @@ function normalizeScenarioLeaderRow(row) {
     region: pickValue(row, ["Region", "region", "Market", "Division"], "--"),
     serviceLines,
     serviceLine: serviceLines[0] || "--",
-    facilityCount: pickNumber(row, ["base Facility Count", "Base Facility Count", "Current Facility Count", "facility_count", "Facility Count"], 0),
+    facilityCount: pickNumber(row, ["Base Facility Count", "base Facility Count", "Current Facility Count", "facility_count", "Facility Count"], 0),
     capacityStatus: pickValue(row, ["Capacity Status", "capacity_status"], getStatusFromPct(baselineUtilPct)),
-    optimizedStatus: pickValue(row, ["optimized_capacity_status", "Optimized Capacity Status", "capacity_status"], getStatusFromPct(optimizedUtilPct)),
+    optimizedStatus: pickValue(row, ["Capacity Status", "optimized_capacity_status", "Optimized Capacity Status", "capacity_status"], getStatusFromPct(optimizedUtilPct)),
     change: Number((optimized - baseline).toFixed(2))
   };
 }
@@ -553,15 +809,15 @@ function buildOpportunities(opportunityRows) {
     const assignmentCost = pickNumber(row, ["Assignment Score", "Assignment Cost", "assignment_score", "score", "Score"], 0);
     const region = pickValue(row, ["Region", "region"], "--");
 
-    const isReassignmentRaw = pickValue(row, ["Is Reassignment", "is_reassignment", "Review Required", "review"], false);
+    const isReviewRaw = pickValue(row, ["Review Required", "review", "Is Reassignment", "is_reassignment"], false);
     const isReview =
-      isReassignmentRaw === true ||
-      String(isReassignmentRaw).toLowerCase() === "true" ||
-      String(isReassignmentRaw).toLowerCase() === "yes" ||
-      String(isReassignmentRaw) === "1";
+      isReviewRaw === true ||
+      String(isReviewRaw).toLowerCase() === "true" ||
+      String(isReviewRaw).toLowerCase() === "yes" ||
+      String(isReviewRaw) === "1";
 
     return {
-      scenarioName: getRowScenarioName(row),
+      scenarioName: getScenarioNameFromRow(row),
       id: String(id).startsWith("Opportunity") ? String(id) : `Opportunity ${id}`,
       baseLeader: currentVp || assignedVp,
       altLeader: assignedVp,
@@ -572,8 +828,8 @@ function buildOpportunities(opportunityRows) {
       complexity: getComplexityLabel(pickValue(row, ["Facility Complexity Score", "complexity"], null)),
       workload: Number(assignmentCost).toFixed(2),
       score: Number(assignmentCost).toFixed(2),
-      impact: pickValue(row, ["Impact", "impact", "capacity_status"], getStatus(assignmentCost, 1)),
-      review: isReview
+      impact: pickValue(row, ["Impact", "impact", "capacity_status"], assignedVp === "--" ? "Review Required" : "Assigned"),
+      review: isReview || assignedVp === "--"
     };
   });
 }
@@ -658,10 +914,10 @@ function buildRegionalScope(leaders) {
   });
 }
 
-function buildLeaderDetails(leaderDrilldown, opportunities) {
+function buildLeaderDetailsFromRows(leaderDrilldownRows, opportunities) {
   const details = {};
 
-  leaderDrilldown.forEach(row => {
+  leaderDrilldownRows.forEach(row => {
     const leaderName = pickValue(row, ["Leader", "VP ID", "leader_name"], "Unknown Leader");
 
     const assignedFacilities = toArray(
@@ -701,6 +957,7 @@ function buildLeaderDetails(leaderDrilldown, opportunities) {
     if (!details[leaderName]) details[leaderName] = [];
 
     const exists = details[leaderName].some(item => item.name === opp.id);
+
     if (!exists) {
       details[leaderName].push({
         name: opp.id,
@@ -720,31 +977,32 @@ function buildLeaderDetails(leaderDrilldown, opportunities) {
 function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunities) {
   const scenarios = {};
 
+  const strategyMap = {
+    "Balanced Growth": "Balanced tradeoff",
+    "Capacity Protection": "Reduce overload risk",
+    "Geographic Efficiency": "Improve territory alignment",
+    "Service Line Fit": "Improve EVS/CNS alignment",
+    "Minimize Disruption": "Preserve current relationships"
+  };
+
+  const priorityMap = {
+    "Balanced Growth": "Balance workload, geography, EVS/CNS fit, and disruption",
+    "Capacity Protection": "Protect VP capacity first",
+    "Geographic Efficiency": "Reduce geographic spread and travel burden",
+    "Service Line Fit": "Match opportunities to service-line familiarity",
+    "Minimize Disruption": "Reduce implementation change"
+  };
+
   scenarioRows.forEach(row => {
-    const name = getScenarioName(row);
-    const candidateScore = getScenarioCandidateScore(row);
+    const name = getScenarioNameFromRow(row);
+    if (!name) return;
+
     const optimizedScore = getScenarioOptimizedScore(row);
     const violations = getScenarioViolations(row);
     const improvement = getScenarioImprovement(row);
 
-    const strategyMap = {
-      "Balanced Growth": "Balanced tradeoff",
-      "Capacity Protection": "Reduce overload risk",
-      "Geographic Efficiency": "Improve territory alignment",
-      "Service Line Fit": "Improve EVS/CNS alignment",
-      "Minimize Disruption": "Preserve current relationships"
-    };
-
-    const priorityMap = {
-      "Balanced Growth": "Balance workload, geography, EVS/CNS fit, and disruption",
-      "Capacity Protection": "Protect VP capacity first",
-      "Geographic Efficiency": "Reduce geographic spread and travel burden",
-      "Service Line Fit": "Match opportunities to service-line familiarity",
-      "Minimize Disruption": "Reduce implementation change"
-    };
-
-    const scenarioLeaderRows = filterRowsForScenario(
-      dashboardData?.scenarioLeaderWorkloads || [],
+    const scenarioLeaderRows = getScenarioRows(
+      dashboardData?.rawModelOutputs?.scenarioLeaderWorkloads || {},
       name
     ).map(normalizeScenarioLeaderRow);
 
@@ -758,10 +1016,17 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
       ? Math.max(...leaderRowsForMetrics.map(leader => Number(leader.optimizedUtilPct || 0)))
       : 0;
 
-    const optimizedOverCapacity = leaderRowsForMetrics.filter(leader => Number(leader.optimizedUtilPct || 0) > 100).length;
+    const optimizedOverCapacity = leaderRowsForMetrics.filter(leader => {
+      return Number(leader.optimizedUtilPct || 0) > 100;
+    }).length;
+
+    const scenarioOpportunities = getScenarioRows(
+      dashboardData?.rawModelOutputs?.scenarioOpportunityAssignments || {},
+      name
+    );
 
     scenarios[name] = {
-      strategy: strategyMap[name] || "Model-generated scenario",
+      strategy: pickValue(row, ["Strategy Type", "strategy_type", "strategy"], strategyMap[name] || "Model-generated scenario"),
       priority: priorityMap[name] || "Evaluate model-generated assignment tradeoffs",
       recommendationHeadline:
         name === "Balanced Growth"
@@ -770,32 +1035,27 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
       recommendationDetail:
         "This scenario is generated from the Python model output and compared against the current-state baseline.",
       optimizedMetrics: {
-        totalLeaders: summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaderRowsForMetrics.length,
-        newOpportunities:
-          summaryMetrics.total_new_opportunities ??
-          summaryMetrics.new_opportunity_count ??
-          opportunities.length,
+        totalLeaders: pickNumber(row, ["Total Leaders", "total_leaders", "Leader Count", "leader_count"], summaryMetrics.total_leaders ?? summaryMetrics.leader_count ?? leaderRowsForMetrics.length),
+        newOpportunities: getScenarioNewOpportunityCount(row) || scenarioOpportunities.length || opportunities.length,
         reassignments: getScenarioReassignmentCount(row),
-        leadersOverCapacity:
-          summaryMetrics.optimized_over_capacity_count ??
-          optimizedOverCapacity,
+        leadersOverCapacity: getScenarioOverCapacityCount(row) || optimizedOverCapacity,
+        nearCapacity: getScenarioNearCapacityCount(row),
         averageUtilization: `${Math.round(avgOptimizedUtilization)}%`,
         highestUtilization: `${Math.round(highestOptimizedUtilization)}%`,
         workloadImprovement: `${improvement.toFixed(1)}%`,
-        objectiveScore: optimizedScore.toFixed(2),
+        objectiveScore: Number.isFinite(optimizedScore) ? optimizedScore.toFixed(2) : "--",
         constraintViolations: violations
       },
       baselineNarrative: [
-        "The current-state baseline reflects existing VP assignments before new opportunity optimization.",
+        "The current-state baseline reflects existing VP assignments before scenario optimization.",
         "Capacity, service-line alignment, and assignment concentration are evaluated before growth is absorbed.",
         "Current-state values come from the notebook-generated facilities model."
       ],
       optimizedNarrative: [
         "The optimized state reflects model-generated assignments for the selected scenario.",
-        "Scenario results compare candidate score against optimized score.",
+        "Scenario results compare baseline conditions against optimized model output.",
         "Capacity violations and objective score are used to support executive tradeoff review."
       ],
-      candidateScore,
       optimizedScore,
       violations,
       improvement
@@ -818,8 +1078,8 @@ function buildDecisionLog(progressReports) {
       },
       {
         date: "Current",
-        decision: "Scenario detail files added",
-        reason: "Scenario dropdowns now read scenario-specific leader and opportunity export files when available.",
+        decision: "Scenario-aware data files added",
+        reason: "Scenario dropdowns now read scenario-specific leader, opportunity, drill-down, and network files.",
         status: "Complete"
       }
     ];
@@ -835,17 +1095,20 @@ function buildDecisionLog(progressReports) {
 
 function buildDashboardDataFromModel(modelOutputs) {
   const summaryMetrics = modelOutputs.summaryMetrics || {};
+
+  const scenarioSummaryRows = toArray(modelOutputs.scenarioSummaryMetrics).length
+    ? toArray(modelOutputs.scenarioSummaryMetrics)
+    : toArray(summaryMetrics.scenario_summaries).length
+      ? toArray(summaryMetrics.scenario_summaries)
+      : toArray(modelOutputs.sensitivityResults);
+
   const leaderSummary = toArray(modelOutputs.leaderWorkloadSummary);
   const leaderDrilldown = toArray(modelOutputs.leaderDrilldown);
   const opportunitiesRaw = toArray(modelOutputs.newOpportunities);
-  const sensitivityRows = toArray(modelOutputs.sensitivityResults);
   const optimizedAssignments = toArray(modelOutputs.optimizedAssignments);
-  const scenarioLeaderWorkloadsRaw = toArray(modelOutputs.scenarioLeaderWorkloads);
-  const scenarioOpportunityAssignmentsRaw = toArray(modelOutputs.scenarioOpportunityAssignments);
 
   const leaders = buildLeaders(leaderSummary, leaderDrilldown, optimizedAssignments);
   const opportunities = buildOpportunities(opportunitiesRaw);
-  const scenarioOpportunityAssignments = buildOpportunities(scenarioOpportunityAssignmentsRaw);
 
   const baseOverCapacity = leaders.filter(leader => Number(leader.baselineUtilPct || 0) > 100).length;
 
@@ -901,49 +1164,26 @@ function buildDashboardDataFromModel(modelOutputs) {
     currentState,
     leaders,
     opportunities,
-    scenarioLeaderWorkloads: scenarioLeaderWorkloadsRaw,
-    scenarioOpportunityAssignments,
-    leaderDetails: buildLeaderDetails(leaderDrilldown, opportunities),
+    scenarioSummaryRows,
+    leaderDetails: buildLeaderDetailsFromRows(leaderDrilldown, opportunities),
     decisionLog: buildDecisionLog(modelOutputs.progressReports),
+    summaryMetrics,
     rawModelOutputs: modelOutputs
   };
 
-  dashboardData = baseData;
-
-  return {
+  dashboardData = {
     ...baseData,
-    scenarios: buildScenarioObject(sensitivityRows, summaryMetrics, leaders, opportunities)
+    scenarios: {}
   };
-}
 
-// ============================================================
-// Dashboard state helpers
-// ============================================================
+  dashboardData.scenarios = buildScenarioObject(
+    scenarioSummaryRows,
+    summaryMetrics,
+    leaders,
+    opportunities
+  );
 
-function getSelectedScenarioName() {
-  return scenarioSelect?.value || Object.keys(dashboardData.scenarios)[0];
-}
-
-function isCompareAllMode() {
-  return getSelectedScenarioName() === "__all";
-}
-
-function getSingleScenarioName() {
-  if (isCompareAllMode()) {
-    return getAllScenarioNames().includes("Balanced Growth")
-      ? "Balanced Growth"
-      : getAllScenarioNames()[0];
-  }
-
-  return getSelectedScenarioName();
-}
-
-function getSelectedScenario() {
-  return dashboardData.scenarios[getSingleScenarioName()] || Object.values(dashboardData.scenarios)[0];
-}
-
-function getAllScenarioNames() {
-  return Object.keys(dashboardData.scenarios || {});
+  return dashboardData;
 }
 
 // ============================================================
@@ -1000,10 +1240,10 @@ function renderDualWorkload(containerId, rows) {
       <div class="compact-row">
         <strong>${row.name}</strong>
         <div>
-          <div class="bar-track" title="Baseline">
+          <div class="bar-track" title="Current / Baseline">
             <div class="bar-fill ${baselineClass}" style="width:${Math.min(baselinePct, 120)}%"></div>
           </div>
-          <div class="bar-track" title="Optimized" style="margin-top:4px;">
+          <div class="bar-track" title="Optimized / Selected Scenario" style="margin-top:4px;">
             <div class="bar-fill ${optimizedClass}" style="width:${Math.min(optimizedPct, 120)}%"></div>
           </div>
         </div>
@@ -1141,6 +1381,13 @@ function renderHome() {
 // Scenarios
 // ============================================================
 
+function renderDashboard() {
+  renderHome();
+  renderCurrentState();
+  renderScenario();
+  renderDecisionLog();
+}
+
 function renderScenario() {
   if (isCompareAllMode()) {
     renderAllScenarioMode();
@@ -1207,6 +1454,8 @@ function renderAllScenarioMode() {
 
 function scenarioCard(name) {
   const scenario = dashboardData.scenarios[name];
+  if (!scenario) return "";
+
   const m = scenario.optimizedMetrics;
 
   return `
@@ -1228,16 +1477,16 @@ function scenarioCard(name) {
 // ============================================================
 
 function getScenarioOpportunityRows(scenarioName = getSingleScenarioName()) {
-  const scenarioRows = filterRowsForScenario(
-    dashboardData.scenarioOpportunityAssignments || [],
+  const rawRows = getScenarioRows(
+    dashboardData.rawModelOutputs.scenarioOpportunityAssignments,
     scenarioName
   );
 
-  const sourceRows = scenarioRows.length
-    ? scenarioRows
+  const sourceRows = rawRows.length
+    ? rawRows
     : dashboardData.opportunities;
 
-  return sourceRows.map(row => ({
+  return buildOpportunities(sourceRows).map(row => ({
     ...row,
     leader: row.leader || row.altLeader || row.baseLeader
   }));
@@ -1305,11 +1554,10 @@ function renderOpportunityTable() {
         <td>${row.id}</td>
         <td>${row.leader}</td>
         <td>${row.region}</td>
-        <td>${row.serviceLine}</td>
+        <td>${row.serviceLine || "--"}</td>
         <td>${row.facilityType}</td>
         <td>${row.complexity}</td>
         <td>${row.workload}</td>
-        <td>${row.score ?? row.workload ?? "--"}</td>
         <td><span class="badge ${getBadgeClass(row.impact)}">${row.impact}</span></td>
         <td><span class="badge ${row.review ? "risk" : "good"}">${row.review ? "Review Required" : "Clear"}</span></td>
       </tr>
@@ -1321,17 +1569,9 @@ function renderOpportunityTable() {
 // Workload
 // ============================================================
 
-function calculateOptimizedWorkload(leader) {
-  if (leader.optimized !== undefined && leader.optimized !== null) {
-    return Number(Number(leader.optimized).toFixed(2));
-  }
-
-  return Number(Number(leader.baseline || 0).toFixed(2));
-}
-
 function getScenarioLeaderRows(scenarioName = getSingleScenarioName()) {
-  const scenarioRows = filterRowsForScenario(
-    dashboardData.scenarioLeaderWorkloads || [],
+  const scenarioRows = getScenarioRows(
+    dashboardData.rawModelOutputs.scenarioLeaderWorkloads,
     scenarioName
   );
 
@@ -1339,18 +1579,7 @@ function getScenarioLeaderRows(scenarioName = getSingleScenarioName()) {
     return scenarioRows.map(normalizeScenarioLeaderRow);
   }
 
-  return dashboardData.leaders.map(leader => {
-    const optimized = calculateOptimizedWorkload(leader);
-    const optimizedStatus = getStatusFromPct(leader.optimizedUtilPct);
-    const change = Number((optimized - leader.baseline).toFixed(2));
-
-    return {
-      ...leader,
-      optimized,
-      optimizedStatus,
-      change
-    };
-  });
+  return dashboardData.leaders;
 }
 
 function renderWorkloadSection() {
@@ -1390,7 +1619,7 @@ function renderWorkloadSection() {
 
   setText(
     "scenarioWorkloadCaption",
-    `${getSingleScenarioName()} · ${scenarioWorkloadView?.options?.[scenarioWorkloadView.selectedIndex]?.text || "All"}`
+    `${getSingleScenarioName()} · ${scenarioWorkloadView?.options?.[scenarioWorkloadView.selectedIndex]?.text || "Priority Leaders"}`
   );
 
   renderDualWorkload("workloadList", rows);
@@ -1441,7 +1670,17 @@ function renderSensitivitySection() {
 function populateLeaderSelector() {
   if (!drilldownLeaderSelect) return;
 
-  const leaderNames = dashboardData.leaders.map(leader => leader.name);
+  const allNames = new Set();
+
+  dashboardData.leaders.forEach(leader => allNames.add(leader.name));
+
+  getAllScenarioNames().forEach(scenarioName => {
+    getScenarioLeaderRows(scenarioName).forEach(leader => {
+      if (leader.name) allNames.add(leader.name);
+    });
+  });
+
+  const leaderNames = [...allNames].sort();
 
   drilldownLeaderSelect.innerHTML = [
     `<option value="__all">All Leaders Summary</option>`,
@@ -1469,6 +1708,32 @@ function renderLeaderDrilldown() {
 function renderAllLeadersSummary() {
   getEl("leaderSummaryMode")?.classList.remove("hidden");
   getEl("singleLeaderMode")?.classList.add("hidden");
+
+  if (isCompareAllMode()) {
+    const names = getAllScenarioNames();
+
+    const bestCapacity = [...names].sort((a, b) => {
+      return dashboardData.scenarios[a].optimizedMetrics.leadersOverCapacity -
+        dashboardData.scenarios[b].optimizedMetrics.leadersOverCapacity;
+    })[0];
+
+    const fewestChanges = [...names].sort((a, b) => {
+      return dashboardData.scenarios[a].optimizedMetrics.reassignments -
+        dashboardData.scenarios[b].optimizedMetrics.reassignments;
+    })[0];
+
+    renderKpis("leaderKpis", [
+      { label: "Total VP Network", value: dashboardData.currentState.totalLeaders },
+      { label: "Baseline Over Cap.", value: dashboardData.currentState.leadersOverCapacity },
+      { label: "Best Capacity", value: bestCapacity || "--", note: bestCapacity ? `${dashboardData.scenarios[bestCapacity].optimizedMetrics.leadersOverCapacity} over cap.` : "" },
+      { label: "Fewest Changes", value: fewestChanges || "--", note: fewestChanges ? `${dashboardData.scenarios[fewestChanges].optimizedMetrics.reassignments} changes` : "" },
+      { label: "Scenarios", value: names.length },
+      { label: "Default", value: names.includes("Balanced Growth") ? "Balanced" : names[0] || "--" }
+    ]);
+
+    setHtml("leaderScenarioComparison", names.map(name => scenarioCard(name)).join(""));
+    return;
+  }
 
   const rows = getScenarioLeaderRows();
   const overCapacity = rows.filter(row => row.optimizedStatus === "Over Capacity").length;
@@ -1500,7 +1765,22 @@ function renderSingleLeader(leaderName) {
 
   const leader = getScenarioLeaderRows().find(row => row.name === leaderName);
 
-  if (!leader) return;
+  if (!leader) {
+    renderKpis("leaderKpis", [
+      { label: "Selected VP", value: leaderName },
+      { label: "Status", value: "No scenario row" },
+      { label: "Baseline", value: "--" },
+      { label: "Optimized", value: "--" },
+      { label: "Capacity", value: "--" },
+      { label: "Utilization", value: "--" }
+    ]);
+
+    setHtml("leaderWorkloadComparison", "");
+    setHtml("leaderPortfolioMix", "");
+    setHtml("candidateComparison", "<p>No scenario-specific leader row was found for this VP.</p>");
+    setHtml("leaderDetailTable", "");
+    return;
+  }
 
   const utilization = `${Math.round(Number(leader.optimizedUtilPct || 0))}%`;
 
@@ -1543,22 +1823,22 @@ function renderLeaderBars(leader) {
   }).join(""));
 }
 
+function getScenarioLeaderDrilldownRows(scenarioName = getSingleScenarioName()) {
+  const rows = getScenarioRows(
+    dashboardData.rawModelOutputs.scenarioLeaderDrilldown,
+    scenarioName
+  );
+
+  return rows.length ? rows : toArray(dashboardData.rawModelOutputs.leaderDrilldown);
+}
+
 function getLeaderDetailRows(leaderName) {
-  const baseRows = dashboardData.leaderDetails[leaderName] || [];
+  const drilldownRows = getScenarioLeaderDrilldownRows();
+  const opportunities = getScenarioOpportunityRows();
 
-  const opportunityRows = getScenarioOpportunityRows()
-    .filter(row => row.leader === leaderName)
-    .map(row => ({
-      name: row.id,
-      type: "New Opportunity",
-      serviceLine: row.serviceLine,
-      facilityType: row.facilityType,
-      region: row.region,
-      workload: row.workload,
-      status: row.review ? "Review Required" : "Added"
-    }));
+  const scenarioDetails = buildLeaderDetailsFromRows(drilldownRows, opportunities);
 
-  return [...baseRows, ...opportunityRows];
+  return scenarioDetails[leaderName] || [];
 }
 
 function renderLeaderPortfolio(leaderName) {
@@ -1587,7 +1867,7 @@ function renderCandidateComparison(leaderName) {
         <h3>${candidate.leader}</h3>
         <ul>
           <li>${candidate.id}</li>
-          <li>${candidate.serviceLine} fit</li>
+          <li>${candidate.serviceLine || "--"} fit</li>
           <li>${candidate.impact}</li>
         </ul>
       </div>
@@ -1595,8 +1875,8 @@ function renderCandidateComparison(leaderName) {
         <h3>${candidate.altLeader}</h3>
         <ul>
           <li>Alternative VP</li>
-          <li>Same region review</li>
           <li>Manual validation recommended</li>
+          <li>Review against capacity and geography</li>
         </ul>
       </div>
     </div>
@@ -1616,7 +1896,7 @@ function renderLeaderTable(leaderName) {
       <tr>
         <td>${row.name}</td>
         <td>${row.type}</td>
-        <td>${row.serviceLine}</td>
+        <td>${row.serviceLine || "--"}</td>
         <td>${row.facilityType}</td>
         <td>${row.region}</td>
         <td>${row.workload}</td>
@@ -1631,7 +1911,13 @@ function renderLeaderTable(leaderName) {
 // ============================================================
 
 function buildNetworkData() {
-  const rawNetwork = dashboardData.rawModelOutputs?.networkNodesEdges;
+  const scenarioNetwork = getScenarioObject(
+    dashboardData.rawModelOutputs.scenarioNetworkNodesEdges,
+    getSingleScenarioName(),
+    null
+  );
+
+  const rawNetwork = scenarioNetwork || dashboardData.rawModelOutputs.networkNodesEdges;
 
   if (rawNetwork && Array.isArray(rawNetwork.nodes) && Array.isArray(rawNetwork.edges)) {
     const nodes = rawNetwork.nodes.map(node => {
@@ -1642,8 +1928,9 @@ function buildNetworkData() {
 
       return {
         id: node.id,
+        label: node.label || node.id,
         type,
-        review: false
+        review: Boolean(node.review || node.review_required || node["Review Required"])
       };
     });
 
@@ -1696,17 +1983,17 @@ function renderNetwork() {
     return node.type === activeNetworkFilter;
   });
 
-  const visibleNodeIds = new Set(nodes.map(node => node.id));
+  const visibleNodeIds = new Set(nodes.map(node => String(node.id)));
 
   setHtml("networkNodes", nodes.map(node => `
     <div class="network-node ${node.type} ${node.review ? "review" : ""}">
-      ${node.id}
+      ${node.label || node.id}
     </div>
   `).join(""));
 
   const edges = network.edges.filter(edge => {
     if (activeNetworkFilter === "all") return true;
-    return visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);
+    return visibleNodeIds.has(String(edge.source)) || visibleNodeIds.has(String(edge.target));
   });
 
   setHtml("networkEdges", edges.slice(0, 18).map(edge => `
@@ -1761,8 +2048,15 @@ function setupEvents() {
     });
   });
 
-  scenarioSelect?.addEventListener("change", renderScenario);
-  scenarioWorkloadView?.addEventListener("change", renderWorkloadSection);
+  scenarioSelect?.addEventListener("change", () => {
+    renderScenario();
+  });
+
+  scenarioWorkloadView?.addEventListener("change", () => {
+    renderWorkloadSection();
+    renderLeaderDrilldown();
+  });
+
   opportunitySearch?.addEventListener("input", renderOpportunityTable);
   opportunityReviewFilter?.addEventListener("change", renderOpportunityTable);
   drilldownLeaderSelect?.addEventListener("change", renderLeaderDrilldown);
@@ -1798,33 +2092,37 @@ async function initializeDashboard() {
 
     const hasRequiredData =
       toArray(modelOutputs.leaderWorkloadSummary).length > 0 &&
-      toArray(modelOutputs.sensitivityResults).length > 0;
+      (
+        toArray(modelOutputs.scenarioSummaryMetrics).length > 0 ||
+        toArray(modelOutputs.sensitivityResults).length > 0 ||
+        toArray(modelOutputs.summaryMetrics.scenario_summaries).length > 0
+      );
 
     if (!hasRequiredData) {
-      throw new Error("Required notebook model outputs are missing. Check data/leader_workload_summary.json and data/sensitivity_results.json.");
+      throw new Error("Required notebook model outputs are missing. Check the data/ folder and scenario-aware JSON exports.");
     }
 
     dashboardData = buildDashboardDataFromModel(modelOutputs);
     window.dashboardData = dashboardData;
 
+    const scenarioNames = getAllScenarioNames();
+
     if (scenarioSelect) {
       scenarioSelect.innerHTML = [
-        ...getAllScenarioNames().map(name => `<option value="${name}">${name}</option>`),
+        ...scenarioNames.map(name => `<option value="${name}">${name}</option>`),
         `<option value="__all">Compare All Scenarios</option>`
       ].join("");
 
-      scenarioSelect.value = getAllScenarioNames().includes("Balanced Growth")
+      scenarioSelect.value = scenarioNames.includes("Balanced Growth")
         ? "Balanced Growth"
-        : getAllScenarioNames()[0] || "__all";
+        : scenarioNames[0] || "__all";
     }
 
     populateLeaderSelector();
-    renderHome();
-    renderCurrentState();
-    renderScenario();
-    renderDecisionLog();
+    renderDashboard();
 
     console.log("Notebook model outputs loaded into dashboard:", dashboardData);
+    console.log("Available scenarios:", getAllScenarioNames());
   } catch (error) {
     console.error(error);
 
