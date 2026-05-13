@@ -12,21 +12,18 @@ const MODEL_DATA_PATHS = {
   leaderDrilldown: "data/leader_drilldown.json",
   newOpportunities: "data/new_opportunities.json",
   sensitivityResults: "data/sensitivity_results.json",
-  networkNodesEdges: "data/network_nodes_edges.json",
-  networkImageManifest: "data/network_image_manifest.json",
   optimizedAssignments: "data/optimized_assignments.json",
   scenarioLeaderWorkloads: "data/scenario_leader_workloads.json",
   scenarioOpportunityAssignments: "data/scenario_opportunity_assignments.json",
-  scenarioLeaderDrilldown: "data/scenario_leader_drilldown.json",
-  scenarioNetworkNodesEdges: "data/scenario_network_nodes_edges.json",
-  scenarioOptimizedAssignments: "data/scenario_optimized_assignments.json"
+  scenarioLeaderDrilldown: "data/scenario_leader_drilldown.json"
 };
+
+const OPPORTUNITY_NETWORK_MANIFEST_PATH = "assets/service_line_opportunity_network_manifest.json";
 
 const PREVIEW_LIMIT = 5;
 const DEFAULT_CAPACITY = 1;
 
 let dashboardData = null;
-let activeNetworkFilter = "all";
 
 let expandedTables = {
   opportunities: false,
@@ -285,14 +282,11 @@ async function loadModelOutputs() {
     leaderDrilldown,
     newOpportunities,
     sensitivityResults,
-    networkNodesEdges,
-    networkImageManifest,
     optimizedAssignments,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
     scenarioLeaderDrilldown,
-    scenarioNetworkNodesEdges,
-    scenarioOptimizedAssignments
+    opportunityNetworkManifest
   ] = await Promise.all([
     fetchModelJson(MODEL_DATA_PATHS.summaryMetrics, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioSummaryMetrics, []),
@@ -300,14 +294,11 @@ async function loadModelOutputs() {
     fetchModelJson(MODEL_DATA_PATHS.leaderDrilldown, []),
     fetchModelJson(MODEL_DATA_PATHS.newOpportunities, []),
     fetchModelJson(MODEL_DATA_PATHS.sensitivityResults, []),
-    fetchModelJson(MODEL_DATA_PATHS.networkNodesEdges, { nodes: [], edges: [] }),
-    fetchModelJson(MODEL_DATA_PATHS.networkImageManifest, {}),
     fetchModelJson(MODEL_DATA_PATHS.optimizedAssignments, []),
     fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderWorkloads, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioOpportunityAssignments, {}),
     fetchModelJson(MODEL_DATA_PATHS.scenarioLeaderDrilldown, {}),
-    fetchModelJson(MODEL_DATA_PATHS.scenarioNetworkNodesEdges, {}),
-    fetchModelJson(MODEL_DATA_PATHS.scenarioOptimizedAssignments, {})
+    fetchModelJson(OPPORTUNITY_NETWORK_MANIFEST_PATH, {})
   ]);
 
   return {
@@ -317,14 +308,11 @@ async function loadModelOutputs() {
     leaderDrilldown,
     newOpportunities,
     sensitivityResults,
-    networkNodesEdges,
-    networkImageManifest,
     optimizedAssignments,
     scenarioLeaderWorkloads,
     scenarioOpportunityAssignments,
     scenarioLeaderDrilldown,
-    scenarioNetworkNodesEdges,
-    scenarioOptimizedAssignments
+    opportunityNetworkManifest
   };
 }
 
@@ -360,22 +348,6 @@ function getScenarioRows(dataset, scenarioName) {
   return [];
 }
 
-function getScenarioObject(dataset, scenarioName, fallback = null) {
-  if (!dataset) return fallback;
-
-  if (isPlainObject(dataset)) {
-    if (dataset[scenarioName]) return dataset[scenarioName];
-
-    const matchedKey = Object.keys(dataset).find(key => {
-      return normalizeKey(key) === normalizeKey(scenarioName);
-    });
-
-    if (matchedKey) return dataset[matchedKey];
-  }
-
-  return fallback;
-}
-
 function getAllScenarioNames() {
   if (!dashboardData) return [];
 
@@ -389,14 +361,8 @@ function getAllScenarioNames() {
   const fromOpportunityAssignments = isPlainObject(dashboardData.rawModelOutputs.scenarioOpportunityAssignments)
     ? Object.keys(dashboardData.rawModelOutputs.scenarioOpportunityAssignments)
     : [];
-  const fromDrilldown = isPlainObject(dashboardData.rawModelOutputs.scenarioLeaderDrilldown)
-    ? Object.keys(dashboardData.rawModelOutputs.scenarioLeaderDrilldown)
-    : [];
-  const fromNetwork = isPlainObject(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
-    ? Object.keys(dashboardData.rawModelOutputs.scenarioNetworkNodesEdges)
-    : [];
-  const fromManifest = isPlainObject(dashboardData.rawModelOutputs.networkImageManifest)
-    ? Object.keys(dashboardData.rawModelOutputs.networkImageManifest)
+  const fromManifest = isPlainObject(dashboardData.rawModelOutputs.opportunityNetworkManifest?.scenarios)
+    ? Object.keys(dashboardData.rawModelOutputs.opportunityNetworkManifest.scenarios)
     : [];
   const fromScenariosObject = dashboardData.scenarios ? Object.keys(dashboardData.scenarios) : [];
 
@@ -405,8 +371,6 @@ function getAllScenarioNames() {
     ...fromScenarioSummary,
     ...fromLeaderWorkloads,
     ...fromOpportunityAssignments,
-    ...fromDrilldown,
-    ...fromNetwork,
     ...fromManifest,
     ...fromScenariosObject
   ].filter(Boolean);
@@ -469,27 +433,6 @@ function getScenarioViolations(row) {
     ],
     0
   );
-}
-
-function getScenarioImprovement(row) {
-  const explicitImprovement = pickValue(
-    row,
-    [
-      "Percent Improvement Vs Base",
-      "percent_improvement_vs_base",
-      "percentImprovementVsBase",
-      "Improvement",
-      "improvement"
-    ],
-    null
-  );
-
-  if (explicitImprovement !== null) {
-    const number = Number(explicitImprovement);
-    return Number.isFinite(number) ? number : 0;
-  }
-
-  return 0;
 }
 
 function getScenarioReassignmentCount(row) {
@@ -1012,7 +955,6 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
 
     const optimizedScore = getScenarioOptimizedScore(row);
     const violations = getScenarioViolations(row);
-    const improvement = getScenarioImprovement(row);
 
     const scenarioLeaderRows = getScenarioRows(
       dashboardData?.rawModelOutputs?.scenarioLeaderWorkloads || {},
@@ -1055,7 +997,6 @@ function buildScenarioObject(scenarioRows, summaryMetrics, leaders, opportunitie
         nearCapacity: getScenarioNearCapacityCount(row),
         averageUtilization: `${Math.round(avgOptimizedUtilization)}%`,
         highestUtilization: `${Math.round(highestOptimizedUtilization)}%`,
-        workloadImprovement: `${improvement.toFixed(1)}%`,
         objectiveScore: Number.isFinite(optimizedScore) ? optimizedScore.toFixed(2) : "--",
         constraintViolations: violations
       },
@@ -1382,6 +1323,7 @@ function renderDashboard() {
   renderHome();
   renderCurrentState();
   renderScenario();
+  renderNetwork();
 }
 
 function renderScenario() {
@@ -1729,39 +1671,6 @@ function renderAllLeadersSummary() {
   getEl("leaderSummaryMode")?.classList.remove("hidden");
   getEl("singleLeaderMode")?.classList.add("hidden");
 
-  if (isCompareAllMode()) {
-    const names = getAllScenarioNames();
-
-    const bestCapacity = [...names].sort((a, b) => {
-      return dashboardData.scenarios[a].optimizedMetrics.leadersOverCapacity -
-        dashboardData.scenarios[b].optimizedMetrics.leadersOverCapacity;
-    })[0];
-
-    const fewestChanges = [...names].sort((a, b) => {
-      return dashboardData.scenarios[a].optimizedMetrics.reassignments -
-        dashboardData.scenarios[b].optimizedMetrics.reassignments;
-    })[0];
-
-    renderKpis("leaderKpis", [
-      { label: "Total VP Network", value: dashboardData.currentState.totalLeaders },
-      { label: "Baseline Over Cap.", value: dashboardData.currentState.leadersOverCapacity },
-      { label: "Best Capacity", value: bestCapacity || "--", note: bestCapacity ? `${dashboardData.scenarios[bestCapacity].optimizedMetrics.leadersOverCapacity} over cap.` : "" },
-      { label: "Fewest Changes", value: fewestChanges || "--", note: fewestChanges ? `${dashboardData.scenarios[fewestChanges].optimizedMetrics.reassignments} changes` : "" },
-      { label: "Scenarios", value: names.length },
-      { label: "Default", value: names.includes("Balanced Growth") ? "Balanced" : names[0] || "--" }
-    ]);
-
-    setHtml(
-      "leaderScenarioComparison",
-      [
-        currentStateScenarioCard(),
-        ...names.map(name => scenarioCard(name))
-      ].join("")
-    );
-
-    return;
-  }
-
   const rows = getScenarioLeaderRows();
   const overCapacity = rows.filter(row => row.optimizedStatus === "Over Capacity").length;
   const nearCapacity = rows.filter(row => row.optimizedStatus === "Near Capacity").length;
@@ -1787,7 +1696,9 @@ function renderAllLeadersSummary() {
     "leaderScenarioComparison",
     [
       currentStateScenarioCard(),
-      scenarioCard(getSingleScenarioName())
+      isCompareAllMode()
+        ? getAllScenarioNames().map(name => scenarioCard(name)).join("")
+        : scenarioCard(getSingleScenarioName())
     ].join("")
   );
 }
@@ -1940,227 +1851,119 @@ function renderLeaderTable(leaderName) {
 }
 
 // ============================================================
-// Network
+// Network gallery
 // ============================================================
 
-function normalizeNetworkNodeType(type) {
-  let cleaned = String(type || "node").toLowerCase();
-
-  if (cleaned === "current") cleaned = "facility";
-  if (cleaned === "service_line") cleaned = "service-line";
-  if (cleaned === "service") cleaned = "service-line";
-  if (cleaned === "vp") cleaned = "leader";
-  if (cleaned === "leader") cleaned = "leader";
-  if (cleaned === "facility") cleaned = "facility";
-  if (cleaned === "opportunity") cleaned = "opportunity";
-
-  return cleaned;
+function getOpportunityNetworkManifest() {
+  return dashboardData.rawModelOutputs.opportunityNetworkManifest || {};
 }
 
-function normalizeNetworkData(rawNetwork) {
-  if (!rawNetwork || !Array.isArray(rawNetwork.nodes) || !Array.isArray(rawNetwork.edges)) {
-    return {
-      nodes: [],
-      edges: []
-    };
+function getNetworkScenarioImagePath(scenarioName) {
+  const manifest = getOpportunityNetworkManifest();
+  const scenarioInfo = manifest?.scenarios?.[scenarioName];
+
+  if (scenarioInfo?.optimized_image) {
+    return scenarioInfo.optimized_image.replace(/^.*?\//, "assets/");
   }
 
-  const nodes = rawNetwork.nodes.map(node => {
-    const type = normalizeNetworkNodeType(node.type || node.group || node.category);
-
-    return {
-      id: node.id,
-      label: node.label || node.name || node.id,
-      type,
-      review: Boolean(node.review || node.review_required || node["Review Required"])
-    };
-  });
-
-  const validNodeIds = new Set(nodes.map(node => String(node.id)));
-
-  const edges = rawNetwork.edges
-    .filter(edge => validNodeIds.has(String(edge.source)) && validNodeIds.has(String(edge.target)))
-    .map(edge => ({
-      source: edge.source,
-      target: edge.target,
-      relationship: edge.relationship || edge.type || "relationship"
-    }));
-
-  return { nodes, edges };
+  return `assets/service_line_vp_optimized_${safeFilename(scenarioName)}.png`;
 }
 
-function buildCurrentNetworkData() {
-  return normalizeNetworkData(dashboardData.rawModelOutputs.networkNodesEdges);
-}
+function getNetworkBaselineImagePath() {
+  const manifest = getOpportunityNetworkManifest();
 
-function buildScenarioNetworkData() {
-  const scenarioNetwork = getScenarioObject(
-    dashboardData.rawModelOutputs.scenarioNetworkNodesEdges,
-    getSingleScenarioName(),
-    null
-  );
-
-  return normalizeNetworkData(scenarioNetwork || dashboardData.rawModelOutputs.networkNodesEdges);
-}
-
-function getFilteredNetworkNodes(network) {
-  return network.nodes.filter(node => {
-    if (activeNetworkFilter === "all") return true;
-    if (activeNetworkFilter === "review") return node.review;
-    return node.type === activeNetworkFilter;
-  });
-}
-
-function getFilteredNetworkEdges(network, nodes) {
-  const visibleNodeIds = new Set(nodes.map(node => String(node.id)));
-
-  return network.edges.filter(edge => {
-    if (activeNetworkFilter === "all") return true;
-    return visibleNodeIds.has(String(edge.source)) || visibleNodeIds.has(String(edge.target));
-  });
-}
-
-function renderNetworkSummary(containerId, network) {
-  const leaderCount = network.nodes.filter(node => node.type === "leader").length;
-  const facilityCount = network.nodes.filter(node => node.type === "facility").length;
-  const opportunityCount = network.nodes.filter(node => node.type === "opportunity").length;
-  const serviceLineCount = network.nodes.filter(node => node.type === "service-line").length;
-
-  renderPills(containerId, [
-    { label: "VPs", value: leaderCount },
-    { label: "Facilities", value: facilityCount },
-    { label: "Opportunities", value: opportunityCount },
-    { label: "Service Lines", value: serviceLineCount },
-    { label: "Relationships", value: network.edges.length }
-  ]);
-}
-
-function renderNetworkNodes(containerId, nodes, stateClass) {
-  setHtml(containerId, nodes.slice(0, 80).map(node => `
-    <div class="network-node ${node.type} ${node.review ? "review" : ""} ${stateClass}">
-      ${node.label || node.id}
-    </div>
-  `).join(""));
-}
-
-function renderNetworkEdges(containerId, edges) {
-  setHtml(containerId, edges.slice(0, 24).map(edge => `
-    <div class="network-edge">
-      <strong>${edge.source}</strong> → <strong>${edge.target}</strong>
-      <span>(${edge.relationship})</span>
-    </div>
-  `).join(""));
-}
-
-function getNetworkImagePathForScenario(scenarioName) {
-  const manifest = dashboardData.rawModelOutputs.networkImageManifest || {};
-
-  if (manifest[scenarioName]) return manifest[scenarioName];
-
-  const matchedKey = Object.keys(manifest).find(key => normalizeKey(key) === normalizeKey(scenarioName));
-  if (matchedKey) return manifest[matchedKey];
-
-  return `assets/network_${safeFilename(scenarioName)}.png`;
-}
-
-function renderCurrentNetworkGraphImage() {
-  const image = getEl("currentNetworkGraphImage");
-  const download = getEl("currentNetworkGraphDownload");
-
-  if (!image) return;
-
-  const imagePath = "assets/network_current_state.png";
-
-  image.src = imagePath;
-  image.classList.remove("hidden");
-
-  if (download) {
-    download.href = imagePath;
-    download.setAttribute("download", "current_state_networkx_graph.png");
-    download.classList.remove("hidden");
+  if (manifest?.baseline?.current_image) {
+    return manifest.baseline.current_image.replace(/^.*?\//, "assets/");
   }
 
-  image.onerror = () => {
-    image.classList.add("hidden");
-
-    if (download) {
-      download.classList.add("hidden");
-    }
-
-    console.warn("Current-state NetworkX image not found at assets/network_current_state.png");
-  };
-}
-
-function renderNetworkGraphImage() {
-  const scenarioName = getSingleScenarioName();
-  const imagePath = getNetworkImagePathForScenario(scenarioName);
-
-  const image = getEl("networkGraphImage");
-  const caption = getEl("networkGraphCaption");
-  const download = getEl("networkGraphDownload");
-
-  if (!image || !caption || !download) return;
-
-  image.src = imagePath;
-  image.classList.remove("hidden");
-
-  download.href = imagePath;
-  download.setAttribute("download", `${safeFilename(scenarioName)}_networkx_graph.png`);
-  download.classList.remove("hidden");
-
-  caption.textContent = `${scenarioName} NetworkX graph generated from the Python model output.`;
-
-  image.onerror = () => {
-    image.classList.add("hidden");
-    download.classList.add("hidden");
-    caption.textContent = `No NetworkX image was found for ${scenarioName}. Confirm the assets folder and data/network_image_manifest.json were committed.`;
-  };
+  return "assets/service_line_vp_current_baseline.png";
 }
 
 function renderNetwork() {
-  if (isCompareAllMode()) {
-    setText(
-      "networkIntro",
-      "Compare-all mode summarizes network impact by scenario. Select a single scenario for side-by-side current state and optimized network views."
-    );
+  const scenarioNames = getAllScenarioNames();
+  const manifest = getOpportunityNetworkManifest();
+  const baseline = manifest?.baseline || {};
+  const scenarioManifest = manifest?.scenarios || {};
 
-    getEl("networkSingleMode")?.classList.add("hidden");
-    getEl("networkAllMode")?.classList.remove("hidden");
+  const totalOpportunityRows = scenarioNames.reduce((sum, name) => {
+    const rows = getScenarioRows(dashboardData.rawModelOutputs.scenarioOpportunityAssignments, name);
+    return sum + rows.length;
+  }, 0);
 
-    setHtml("networkScenarioSummary", getAllScenarioNames().map(name => scenarioCard(name)).join(""));
-    return;
-  }
+  renderKpis("networkKpis", [
+    { label: "Baseline VP Set", value: baseline.vp_count ?? "--", note: "VPs involved in any opportunity scenario" },
+    { label: "Scenario Graphs", value: scenarioNames.length },
+    { label: "Opportunity Rows", value: totalOpportunityRows },
+    { label: "Service Lines", value: "EVS / CNS" },
+    { label: "Primary Signal", value: "Green Nodes", note: "New opportunities" }
+  ]);
 
-  const scenarioName = getSingleScenarioName();
+  const currentCard = `
+    <div class="network-graph-card current-baseline">
+      <div class="network-card-header">
+        <div>
+          <h3>Current Baseline</h3>
+          <p>
+            Fixed baseline of all VPs that receive at least one opportunity in any scenario.
+            Current portfolios are summarized by EVS/CNS.
+          </p>
+        </div>
+        <span class="network-card-tag current">Top-left baseline</span>
+      </div>
 
-  setText(
-    "networkIntro",
-    `Current state network compared against ${scenarioName}. The left side shows the baseline NetworkX graph and current relationships, while the right side shows the selected scenario's NetworkX output and scenario relationship structure.`
-  );
+      <a
+        class="small-button network-graph-download"
+        href="${getNetworkBaselineImagePath()}"
+        download="service_line_vp_current_baseline.png"
+      >
+        Download image
+      </a>
 
-  getEl("networkSingleMode")?.classList.remove("hidden");
-  getEl("networkAllMode")?.classList.add("hidden");
+      <img
+        class="network-graph-image"
+        src="${getNetworkBaselineImagePath()}"
+        alt="Current baseline opportunity network graph"
+      />
+    </div>
+  `;
 
-  const currentNetwork = buildCurrentNetworkData();
-  const scenarioNetwork = buildScenarioNetworkData();
+  const scenarioCards = scenarioNames.map(name => {
+    const info = scenarioManifest[name] || {};
+    const imagePath = getNetworkScenarioImagePath(name);
 
-  const currentNodes = getFilteredNetworkNodes(currentNetwork);
-  const currentEdges = getFilteredNetworkEdges(currentNetwork, currentNodes);
+    return `
+      <div class="network-graph-card">
+        <div class="network-card-header">
+          <div>
+            <h3>${name}</h3>
+            <p>
+              Optimized opportunity absorption network for ${name}.
+              Green nodes show new opportunity assignments.
+            </p>
+          </div>
+          <span class="network-card-tag optimized">
+            ${info.opportunity_count ?? "Scenario"} opps
+          </span>
+        </div>
 
-  const scenarioNodes = getFilteredNetworkNodes(scenarioNetwork);
-  const scenarioEdges = getFilteredNetworkEdges(scenarioNetwork, scenarioNodes);
+        <a
+          class="small-button network-graph-download"
+          href="${imagePath}"
+          download="service_line_vp_optimized_${safeFilename(name)}.png"
+        >
+          Download image
+        </a>
 
-  renderNetworkSummary("currentNetworkSummary", currentNetwork);
-  renderNetworkSummary("scenarioNetworkSummary", scenarioNetwork);
+        <img
+          class="network-graph-image"
+          src="${imagePath}"
+          alt="${name} opportunity absorption network graph"
+        />
+      </div>
+    `;
+  }).join("");
 
-  renderNetworkNodes("currentNetworkNodes", currentNodes, "current");
-  renderNetworkEdges("currentNetworkEdges", currentEdges);
-
-  renderNetworkNodes("networkNodes", scenarioNodes, "scenario");
-  renderNetworkEdges("networkEdges", scenarioEdges);
-
-  renderCurrentNetworkGraphImage();
-  renderNetworkGraphImage();
+  setHtml("networkGraphGallery", currentCard + scenarioCards);
 }
 
 // ============================================================
@@ -2174,15 +1977,6 @@ function setupEvents() {
 
   navCards.forEach(card => {
     card.addEventListener("click", () => switchTab(card.dataset.goTab));
-  });
-
-  document.querySelectorAll(".network-filter").forEach(button => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".network-filter").forEach(item => item.classList.remove("active"));
-      button.classList.add("active");
-      activeNetworkFilter = button.dataset.filter;
-      renderNetwork();
-    });
   });
 
   scenarioSelect?.addEventListener("change", () => {
@@ -2262,7 +2056,7 @@ async function initializeDashboard() {
       "afterbegin",
       `
       <div style="padding:16px;background:#7f1d1d;color:white;font-family:sans-serif;position:sticky;top:0;z-index:9999;">
-        Dashboard data failed to load. Check that the notebook-exported JSON files exist in the data/ folder.
+        Dashboard data failed to load. Check that the notebook-exported JSON files and assets exist.
       </div>
       `
     );
