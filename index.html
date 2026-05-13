@@ -383,85 +383,113 @@
     </section>
 
     <section id="network" class="tab-panel">
-      <div class="section-block">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Relationship Network</p>
-            <h2>Current State vs Selected Scenario Network View</h2>
-          </div>
-          <p id="networkIntro">
-            Compare the baseline relationship network against the selected optimized scenario.
-          </p>
-        </div>
+  <div class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Relationship Network</p>
+        <h2>Current State vs Selected Scenario Network View</h2>
+      </div>
+      <p id="networkIntro">
+        Compare the baseline relationship network against the selected optimized scenario.
+      </p>
+    </div>
 
-        <div id="networkSingleMode">
-          <div class="network-comparison-grid">
-            <div class="mini-panel network-compare-panel">
-              <div class="panel-title-row">
-                <div>
-                  <h3>Current State Network</h3>
-                  <p>
-                    Baseline relationship view from current assignments, facilities, opportunities, and EVS/CNS connections.
-                  </p>
-                </div>
-              </div>
-
-              <div class="network-controls">
-                <button class="network-filter active" data-filter="all">All</button>
-                <button class="network-filter" data-filter="leader">VPs</button>
-                <button class="network-filter" data-filter="facility">Facilities</button>
-                <button class="network-filter" data-filter="opportunity">Opportunities</button>
-                <button class="network-filter" data-filter="service-line">Service Lines</button>
-                <button class="network-filter" data-filter="review">Review</button>
-              </div>
-
-              <div class="network-summary-row" id="currentNetworkSummary"></div>
-
-              <h4>Current Nodes</h4>
-              <div id="currentNetworkNodes" class="network-nodes"></div>
-
-              <h4>Current Relationships</h4>
-              <div id="currentNetworkEdges" class="network-edges"></div>
-            </div>
-
-            <div class="mini-panel network-compare-panel">
-              <div class="panel-title-row">
-                <div>
-                  <h3>Selected Scenario NetworkX Graph</h3>
-                  <p id="networkGraphCaption">
-                    Scenario-generated graph from Python NetworkX.
-                  </p>
-                </div>
-
-                <a id="networkGraphDownload" class="small-button network-graph-download hidden" href="#" download>
-                  Download image
-                </a>
-              </div>
-
-              <img id="networkGraphImage" class="network-graph-image hidden" alt="NetworkX scenario graph" />
-
-              <div class="network-summary-row" id="scenarioNetworkSummary"></div>
-
-              <h4>Scenario Nodes</h4>
-              <div id="networkNodes" class="network-nodes"></div>
-
-              <h4>Scenario Relationships</h4>
-              <div id="networkEdges" class="network-edges"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="networkAllMode" class="hidden">
-          <div class="section-heading">
+    <div id="networkSingleMode">
+      <div class="network-comparison-grid">
+        <div class="mini-panel network-compare-panel">
+          <div class="panel-title-row">
             <div>
-              <h2>Compare All Scenario Networks</h2>
+              <h3>Current State NetworkX Graph</h3>
+              <p>
+                Baseline relationship view from current assignments, facilities, opportunities, and EVS/CNS connections.
+              </p>
             </div>
-            <p>
-              Compare-all mode summarizes scenario-level network impacts. Select a single scenario to view the side-by-side current state and optimized network graph.
-            </p>
+
+            <a
+              id="currentNetworkGraphDownload"
+              class="small-button network-graph-download"
+              href="assets/network_current_state.png"
+              download="current_state_networkx_graph.png"
+            >
+              Download image
+            </a>
           </div>
 
-          <div id="networkScenarioSummary" class="scenario-scorecard-grid"></div>
+          <img
+            id="currentNetworkGraphImage"
+            class="network-graph-image"
+            src="assets/network_current_state.png"
+            alt="Current State NetworkX graph"
+          />
+
+          <div class="network-controls">
+            <button class="network-filter active" data-filter="all">All</button>
+            <button class="network-filter" data-filter="leader">VPs</button>
+            <button class="network-filter" data-filter="facility">Facilities</button>
+            <button class="network-filter" data-filter="opportunity">Opportunities</button>
+            <button class="network-filter" data-filter="service-line">Service Lines</button>
+            <button class="network-filter" data-filter="review">Review</button>
+          </div>
+
+          <div class="network-summary-row" id="currentNetworkSummary"></div>
+
+          <h4>Current Nodes</h4>
+          <div id="currentNetworkNodes" class="network-nodes"></div>
+
+          <h4>Current Relationships</h4>
+          <div id="currentNetworkEdges" class="network-edges"></div>
+        </div>
+
+        <div class="mini-panel network-compare-panel">
+          <div class="panel-title-row">
+            <div>
+              <h3>Selected Scenario NetworkX Graph</h3>
+              <p id="networkGraphCaption">
+                Scenario-generated graph from Python NetworkX.
+              </p>
+            </div>
+
+            <a
+              id="networkGraphDownload"
+              class="small-button network-graph-download hidden"
+              href="#"
+              download
+            >
+              Download image
+            </a>
+          </div>
+
+          <img
+            id="networkGraphImage"
+            class="network-graph-image hidden"
+            alt="NetworkX scenario graph"
+          />
+
+          <div class="network-summary-row" id="scenarioNetworkSummary"></div>
+
+          <h4>Scenario Nodes</h4>
+          <div id="networkNodes" class="network-nodes"></div>
+
+          <h4>Scenario Relationships</h4>
+          <div id="networkEdges" class="network-edges"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="networkAllMode" class="hidden">
+      <div class="section-heading">
+        <div>
+          <h2>Compare All Scenario Networks</h2>
+        </div>
+        <p>
+          Compare-all mode summarizes scenario-level network impacts. Select a single scenario to view the side-by-side current state and optimized network graph.
+        </p>
+      </div>
+
+      <div id="networkScenarioSummary" class="scenario-scorecard-grid"></div>
+    </div>
+  </div>
+</section>
         </div>
       </div>
     </section>
