@@ -1323,7 +1323,6 @@ function renderDashboard() {
   renderHome();
   renderCurrentState();
   renderScenario();
-  renderNetwork();
 }
 
 function renderScenario() {
@@ -1880,7 +1879,7 @@ function getNetworkBaselineImagePath() {
 }
 
 function renderNetwork() {
-  const scenarioNames = getAllScenarioNames();
+  const scenarioNames = getAllScenarioNames().filter(name => name !== "__all");
   const manifest = getOpportunityNetworkManifest();
   const baseline = manifest?.baseline || {};
   const scenarioManifest = manifest?.scenarios || {};
@@ -1898,22 +1897,24 @@ function renderNetwork() {
     { label: "Primary Signal", value: "Green Nodes", note: "New opportunities" }
   ]);
 
-  const currentCard = `
+  const baselinePath = getNetworkBaselineImagePath();
+
+  setHtml("networkCurrentGraph", `
     <div class="network-graph-card current-baseline">
       <div class="network-card-header">
         <div>
-          <h3>Current Baseline</h3>
+          <h3>Current State Baseline</h3>
           <p>
             Fixed baseline of all VPs that receive at least one opportunity in any scenario.
             Current portfolios are summarized by EVS/CNS.
           </p>
         </div>
-        <span class="network-card-tag current">Top-left baseline</span>
+        <span class="network-card-tag current">Current State</span>
       </div>
 
       <a
         class="small-button network-graph-download"
-        href="${getNetworkBaselineImagePath()}"
+        href="${baselinePath}"
         download="service_line_vp_current_baseline.png"
       >
         Download image
@@ -1921,13 +1922,13 @@ function renderNetwork() {
 
       <img
         class="network-graph-image"
-        src="${getNetworkBaselineImagePath()}"
+        src="${baselinePath}"
         alt="Current baseline opportunity network graph"
       />
     </div>
-  `;
+  `);
 
-  const scenarioCards = scenarioNames.map(name => {
+  setHtml("networkScenarioGraphs", scenarioNames.map(name => {
     const info = scenarioManifest[name] || {};
     const imagePath = getNetworkScenarioImagePath(name);
 
@@ -1937,8 +1938,8 @@ function renderNetwork() {
           <div>
             <h3>${name}</h3>
             <p>
-              Optimized opportunity absorption network for ${name}.
-              Green nodes show new opportunity assignments.
+              Optimized opportunity absorption network.
+              Green nodes show new opportunities assigned under this scenario.
             </p>
           </div>
           <span class="network-card-tag optimized">
@@ -1961,9 +1962,7 @@ function renderNetwork() {
         />
       </div>
     `;
-  }).join("");
-
-  setHtml("networkGraphGallery", currentCard + scenarioCards);
+  }).join(""));
 }
 
 // ============================================================
