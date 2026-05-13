@@ -1950,6 +1950,9 @@ function normalizeNetworkNodeType(type) {
   if (cleaned === "service_line") cleaned = "service-line";
   if (cleaned === "service") cleaned = "service-line";
   if (cleaned === "vp") cleaned = "leader";
+  if (cleaned === "leader") cleaned = "leader";
+  if (cleaned === "facility") cleaned = "facility";
+  if (cleaned === "opportunity") cleaned = "opportunity";
 
   return cleaned;
 }
@@ -2060,6 +2063,34 @@ function getNetworkImagePathForScenario(scenarioName) {
   return `assets/network_${safeFilename(scenarioName)}.png`;
 }
 
+function renderCurrentNetworkGraphImage() {
+  const image = getEl("currentNetworkGraphImage");
+  const download = getEl("currentNetworkGraphDownload");
+
+  if (!image) return;
+
+  const imagePath = "assets/network_current_state.png";
+
+  image.src = imagePath;
+  image.classList.remove("hidden");
+
+  if (download) {
+    download.href = imagePath;
+    download.setAttribute("download", "current_state_networkx_graph.png");
+    download.classList.remove("hidden");
+  }
+
+  image.onerror = () => {
+    image.classList.add("hidden");
+
+    if (download) {
+      download.classList.add("hidden");
+    }
+
+    console.warn("Current-state NetworkX image not found at assets/network_current_state.png");
+  };
+}
+
 function renderNetworkGraphImage() {
   const scenarioName = getSingleScenarioName();
   const imagePath = getNetworkImagePathForScenario(scenarioName);
@@ -2104,7 +2135,7 @@ function renderNetwork() {
 
   setText(
     "networkIntro",
-    `Current state network compared against ${scenarioName}. The left side shows baseline relationships, and the right side shows the selected scenario's NetworkX output and scenario relationship structure.`
+    `Current state network compared against ${scenarioName}. The left side shows the baseline NetworkX graph and current relationships, while the right side shows the selected scenario's NetworkX output and scenario relationship structure.`
   );
 
   getEl("networkSingleMode")?.classList.remove("hidden");
@@ -2128,6 +2159,7 @@ function renderNetwork() {
   renderNetworkNodes("networkNodes", scenarioNodes, "scenario");
   renderNetworkEdges("networkEdges", scenarioEdges);
 
+  renderCurrentNetworkGraphImage();
   renderNetworkGraphImage();
 }
 
