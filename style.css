@@ -30,7 +30,7 @@ body {
 
 .page {
   min-height: 100vh;
-  padding: 34px;
+  padding: clamp(18px, 2.2vw, 34px);
 }
 
 .site-header,
@@ -39,7 +39,8 @@ body {
 .top-controls,
 .recommendation-card,
 .section-block {
-  max-width: 1320px;
+  width: min(96vw, 1800px);
+  max-width: none;
   margin-left: auto;
   margin-right: auto;
 }
@@ -60,14 +61,14 @@ body {
 h1 {
   max-width: 1080px;
   margin: 0;
-  font-size: 52px;
+  font-size: clamp(38px, 4vw, 58px);
   line-height: 0.98;
   letter-spacing: -0.05em;
 }
 
 h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: clamp(24px, 2vw, 32px);
   letter-spacing: -0.035em;
 }
 
@@ -160,11 +161,11 @@ h3 {
 
 .hero-card h2 {
   max-width: 920px;
-  font-size: 36px;
+  font-size: clamp(30px, 2.6vw, 40px);
 }
 
 .section-block {
-  padding: 24px;
+  padding: clamp(20px, 1.8vw, 28px);
   margin-bottom: 22px;
 }
 
@@ -710,7 +711,8 @@ tr:last-child td {
 
 /* Network layout */
 .network-section-block {
-  max-width: 1500px;
+  width: min(98vw, 2200px);
+  max-width: none;
 }
 
 .network-kpi-strip {
@@ -730,8 +732,8 @@ tr:last-child td {
 
 .network-dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(420px, 0.95fr) minmax(620px, 1.45fr);
-  gap: 22px;
+  grid-template-columns: minmax(520px, 0.9fr) minmax(900px, 1.6fr);
+  gap: 24px;
   align-items: stretch;
 }
 
@@ -739,7 +741,7 @@ tr:last-child td {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 830px;
+  min-height: 78vh;
 }
 
 .network-scenario-column {
@@ -750,8 +752,8 @@ tr:last-child td {
 .network-scenario-grid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(2, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
+  gap: 18px;
   align-items: stretch;
 }
 
@@ -762,8 +764,8 @@ tr:last-child td {
 
 .network-graph-card.current-baseline {
   width: 100%;
-  max-width: 560px;
-  min-height: 650px;
+  max-width: 760px;
+  min-height: 78vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -822,11 +824,11 @@ tr:last-child td {
 }
 
 .network-current-column .network-graph-image {
-  max-height: 560px;
+  max-height: 72vh;
 }
 
 .network-scenario-grid .network-graph-image {
-  max-height: 315px;
+  max-height: 42vh;
 }
 
 .network-graph-download {
@@ -868,6 +870,11 @@ tr:last-child td {
 
   .network-scenario-grid {
     grid-template-columns: repeat(2, minmax(260px, 1fr));
+  }
+
+  .network-current-column .network-graph-image,
+  .network-scenario-grid .network-graph-image {
+    max-height: 62vh;
   }
 }
 
@@ -929,5 +936,10 @@ tr:last-child td {
 
   .home-kpi-grid .metric-card strong {
     font-size: 29px;
+  }
+
+  .network-current-column .network-graph-image,
+  .network-scenario-grid .network-graph-image {
+    max-height: none;
   }
 }
