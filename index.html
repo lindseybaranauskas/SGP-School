@@ -67,7 +67,7 @@
 
           <button class="nav-card" data-go-tab="network">
             <h3>Network</h3>
-            <p>Compare current-state relationships against selected scenario NetworkX graph outputs.</p>
+            <p>Review current baseline and all scenario opportunity-absorption network graphs.</p>
           </button>
         </div>
       </div>
@@ -383,113 +383,28 @@
     </section>
 
     <section id="network" class="tab-panel">
-  <div class="section-block">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Relationship Network</p>
-        <h2>Current State vs Selected Scenario Network View</h2>
-      </div>
-      <p id="networkIntro">
-        Compare the baseline relationship network against the selected optimized scenario.
-      </p>
-    </div>
-
-    <div id="networkSingleMode">
-      <div class="network-comparison-grid">
-        <div class="mini-panel network-compare-panel">
-          <div class="panel-title-row">
-            <div>
-              <h3>Current State NetworkX Graph</h3>
-              <p>
-                Baseline relationship view from current assignments, facilities, opportunities, and EVS/CNS connections.
-              </p>
-            </div>
-
-            <a
-              id="currentNetworkGraphDownload"
-              class="small-button network-graph-download"
-              href="assets/network_current_state.png"
-              download="current_state_networkx_graph.png"
-            >
-              Download image
-            </a>
+      <div class="section-block">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Opportunity Absorption Network</p>
+            <h2>Current baseline and scenario network outputs</h2>
           </div>
-
-          <img
-            id="currentNetworkGraphImage"
-            class="network-graph-image"
-            src="assets/network_current_state.png"
-            alt="Current State NetworkX graph"
-          />
-
-          <div class="network-controls">
-            <button class="network-filter active" data-filter="all">All</button>
-            <button class="network-filter" data-filter="leader">VPs</button>
-            <button class="network-filter" data-filter="facility">Facilities</button>
-            <button class="network-filter" data-filter="opportunity">Opportunities</button>
-            <button class="network-filter" data-filter="service-line">Service Lines</button>
-            <button class="network-filter" data-filter="review">Review</button>
-          </div>
-
-          <div class="network-summary-row" id="currentNetworkSummary"></div>
-
-          <h4>Current Nodes</h4>
-          <div id="currentNetworkNodes" class="network-nodes"></div>
-
-          <h4>Current Relationships</h4>
-          <div id="currentNetworkEdges" class="network-edges"></div>
+          <p id="networkIntro">
+            The top-left graph shows the fixed current-state baseline for all VPs involved in opportunity absorption.
+            The remaining graphs show how each optimized scenario assigns new opportunities into that same VP/service-line structure.
+          </p>
         </div>
 
-        <div class="mini-panel network-compare-panel">
-          <div class="panel-title-row">
-            <div>
-              <h3>Selected Scenario NetworkX Graph</h3>
-              <p id="networkGraphCaption">
-                Scenario-generated graph from Python NetworkX.
-              </p>
-            </div>
+        <div class="network-kpi-strip" id="networkKpis"></div>
 
-            <a
-              id="networkGraphDownload"
-              class="small-button network-graph-download hidden"
-              href="#"
-              download
-            >
-              Download image
-            </a>
-          </div>
+        <div id="networkGraphGallery" class="network-gallery-grid"></div>
 
-          <img
-            id="networkGraphImage"
-            class="network-graph-image hidden"
-            alt="NetworkX scenario graph"
-          />
-
-          <div class="network-summary-row" id="scenarioNetworkSummary"></div>
-
-          <h4>Scenario Nodes</h4>
-          <div id="networkNodes" class="network-nodes"></div>
-
-          <h4>Scenario Relationships</h4>
-          <div id="networkEdges" class="network-edges"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="networkAllMode" class="hidden">
-      <div class="section-heading">
-        <div>
-          <h2>Compare All Scenario Networks</h2>
-        </div>
-        <p>
-          Compare-all mode summarizes scenario-level network impacts. Select a single scenario to view the side-by-side current state and optimized network graph.
-        </p>
-      </div>
-
-      <div id="networkScenarioSummary" class="scenario-scorecard-grid"></div>
-    </div>
-  </div>
-</section>
+        <div class="network-note">
+          <h3>How to read these graphs</h3>
+          <p>
+            EVS and CNS appear as service-line anchors. VP nodes represent leaders who receive at least one opportunity in any scenario.
+            Gray portfolio nodes summarize current-state responsibilities. Green nodes represent new opportunities assigned by each scenario.
+          </p>
         </div>
       </div>
     </section>
