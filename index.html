@@ -35,7 +35,7 @@
         </p>
       </div>
 
-      <div class="metric-grid six-wide centered-metrics" id="homeKpis"></div>
+      <div class="metric-grid six-wide centered-metrics home-kpi-grid" id="homeKpis"></div>
 
       <div class="section-block">
         <div class="section-heading">
@@ -67,7 +67,7 @@
 
           <button class="nav-card" data-go-tab="network">
             <h3>Network</h3>
-            <p>Review current baseline and all scenario opportunity-absorption network graphs.</p>
+            <p>Review current baseline and optimized opportunity-absorption network graphs.</p>
           </button>
         </div>
       </div>
@@ -383,27 +383,32 @@
     </section>
 
     <section id="network" class="tab-panel">
-      <div class="section-block">
+      <div class="section-block network-section-block">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Opportunity Absorption Network</p>
-            <h2>Current baseline and scenario network outputs</h2>
+            <h2>Current baseline vs optimized scenario networks</h2>
           </div>
           <p id="networkIntro">
-            The top-left graph shows the fixed current-state baseline for all VPs involved in opportunity absorption.
-            The remaining graphs show how each optimized scenario assigns new opportunities into that same VP/service-line structure.
+            The left side shows the fixed current-state baseline for all VPs involved in opportunity absorption.
+            The right side shows the optimized scenario graphs, highlighting how new opportunities are absorbed into the same VP/service-line structure.
           </p>
         </div>
 
         <div class="network-kpi-strip" id="networkKpis"></div>
 
-        <div id="networkGraphGallery" class="network-gallery-grid"></div>
+        <div class="network-dashboard-layout">
+          <div class="network-current-column" id="networkCurrentGraph"></div>
+          <div class="network-scenario-column">
+            <div id="networkScenarioGraphs" class="network-scenario-grid"></div>
+          </div>
+        </div>
 
         <div class="network-note">
           <h3>How to read these graphs</h3>
           <p>
             EVS and CNS appear as service-line anchors. VP nodes represent leaders who receive at least one opportunity in any scenario.
-            Gray portfolio nodes summarize current-state responsibilities. Green nodes represent new opportunities assigned by each scenario.
+            Gray portfolio nodes summarize current-state responsibilities. Green nodes represent new opportunities assigned by each optimized scenario.
           </p>
         </div>
       </div>
